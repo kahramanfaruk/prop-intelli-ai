@@ -1,0 +1,25 @@
+{
+  "document": "expose_09_dresden_bungalow.pdf",
+  "fields": {
+    "title": "Bungalow mit großem Grundstück in Dresden-Loschwitz",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 615000.0,
+    "living_area_sqm": 119.0,
+    "postal_code": "01326",
+    "city": "Dresden",
+    "street": "Pillnitzer Landstraße",
+    "house_number": "9",
+    "rooms": 4.0,
+    "plot_area_sqm": 640.0,
+    "year_built": 1972,
+    "condition": "needs_renovation",
+    "district": "Loschwitz",
+    "energy_class": "F",
+    "heating_type": "oil",
+    "energy_demand_kwh": 189.0,
+    "garden": true,
+    "cellar": true,
+    "parking": true
+  }
+}

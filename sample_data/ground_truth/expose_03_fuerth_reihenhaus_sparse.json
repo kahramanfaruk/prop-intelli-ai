@@ -1,0 +1,19 @@
+{
+  "document": "expose_03_fuerth_reihenhaus_sparse.pdf",
+  "fields": {
+    "title": "Reihenmittelhaus mit Garten in Fürth",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 520000.0,
+    "living_area_sqm": 138.0,
+    "postal_code": "90763",
+    "city": "Fürth",
+    "street": "Schwabacher Straße",
+    "house_number": "115",
+    "rooms": 5.0,
+    "plot_area_sqm": 210.0,
+    "garden": true,
+    "cellar": true,
+    "parking": true
+  }
+}

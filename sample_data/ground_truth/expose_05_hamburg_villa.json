@@ -1,0 +1,26 @@
+{
+  "document": "expose_05_hamburg_villa.pdf",
+  "fields": {
+    "title": "Freistehende Stadtvilla mit Garten in Hamburg-Blankenese",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 2450000.0,
+    "living_area_sqm": 265.0,
+    "postal_code": "22609",
+    "city": "Hamburg",
+    "street": "Elbchaussee",
+    "house_number": "350",
+    "rooms": 7.0,
+    "plot_area_sqm": 820.0,
+    "year_built": 1985,
+    "condition": "renovated",
+    "district": "Blankenese",
+    "energy_class": "D",
+    "heating_type": "oil",
+    "energy_demand_kwh": 132.0,
+    "garden": true,
+    "terrace": true,
+    "cellar": true,
+    "parking": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "document": "expose_02_muenchen_altbau.pdf",
+  "fields": {
+    "title": "Charmante Altbauwohnung nahe Englischer Garten, München",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 1190000.0,
+    "living_area_sqm": 124.5,
+    "postal_code": "80539",
+    "city": "München",
+    "street": "Königinstraße",
+    "house_number": "7",
+    "rooms": 4.5,
+    "floor": 3,
+    "total_floors": 5,
+    "year_built": 1910,
+    "condition": "well_kept",
+    "district": "Schwabing",
+    "energy_class": "E",
+    "heating_type": "district_heating",
+    "energy_demand_kwh": 156.0,
+    "balcony": true,
+    "cellar": true,
+    "fitted_kitchen": true
+  }
+}

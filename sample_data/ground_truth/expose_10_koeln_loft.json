@@ -1,0 +1,27 @@
+{
+  "document": "expose_10_koeln_loft.pdf",
+  "fields": {
+    "title": "Loft im umgebauten Speicher, Köln-Ehrenfeld",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 729000.0,
+    "living_area_sqm": 142.0,
+    "postal_code": "50825",
+    "city": "Köln",
+    "street": "Venloer Straße",
+    "house_number": "389",
+    "rooms": 3.0,
+    "floor": 2,
+    "total_floors": 3,
+    "year_built": 2009,
+    "condition": "modernised",
+    "availability_date": "2026-10-01",
+    "district": "Ehrenfeld",
+    "energy_class": "C",
+    "heating_type": "heat_pump",
+    "energy_demand_kwh": 88.0,
+    "terrace": true,
+    "elevator": true,
+    "fitted_kitchen": true
+  }
+}

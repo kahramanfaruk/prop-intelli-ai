@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.python-version
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Project data artifacts (generated at runtime; not committed)
+data/
+*.duckdb
+*.sqlite
+*.sqlite3
+*.parquet
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# .NET
+services/**/bin/
+services/**/obj/
+services/**/out/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp

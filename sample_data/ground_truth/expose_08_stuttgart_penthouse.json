@@ -1,0 +1,29 @@
+{
+  "document": "expose_08_stuttgart_penthouse.pdf",
+  "fields": {
+    "title": "Exklusives Penthouse mit Dachterrasse in Stuttgart-West",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 1340000.0,
+    "living_area_sqm": 176.0,
+    "postal_code": "70178",
+    "city": "Stuttgart",
+    "street": "Rotebühlstraße",
+    "house_number": "55",
+    "rooms": 4.0,
+    "floor": 6,
+    "total_floors": 6,
+    "year_built": 2016,
+    "condition": "modernised",
+    "district": "Stuttgart-West",
+    "energy_class": "B",
+    "heating_type": "underfloor",
+    "energy_demand_kwh": 62.0,
+    "energy_certificate_type": "Verbrauchsausweis",
+    "terrace": true,
+    "elevator": true,
+    "fitted_kitchen": true,
+    "parking": true,
+    "barrier_free": true
+  }
+}

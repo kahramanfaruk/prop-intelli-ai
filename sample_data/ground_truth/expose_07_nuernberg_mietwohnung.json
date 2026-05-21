@@ -1,0 +1,26 @@
+{
+  "document": "expose_07_nuernberg_mietwohnung.pdf",
+  "fields": {
+    "title": "Helle 2-Zimmer-Mietwohnung in Nürnberg-Gostenhof",
+    "listing_type": "rent",
+    "price_kind": "cold_rent",
+    "price_eur": 980.0,
+    "living_area_sqm": 58.5,
+    "postal_code": "90429",
+    "city": "Nürnberg",
+    "street": "Fürther Straße",
+    "house_number": "210",
+    "rooms": 2.0,
+    "floor": 1,
+    "total_floors": 3,
+    "year_built": 1965,
+    "condition": "well_kept",
+    "availability_date": "2026-08-01",
+    "district": "Gostenhof",
+    "energy_class": "D",
+    "heating_type": "gas",
+    "energy_demand_kwh": 118.0,
+    "balcony": true,
+    "cellar": true
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "document": "expose_04_berlin_neubau.pdf",
+  "fields": {
+    "title": "Erstbezug: 2-Zimmer-Neubauwohnung in Berlin-Mitte",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 675000.0,
+    "living_area_sqm": 68.0,
+    "postal_code": "10115",
+    "city": "Berlin",
+    "street": "Invalidenstraße",
+    "house_number": "20",
+    "rooms": 2.0,
+    "floor": 5,
+    "total_floors": 7,
+    "year_built": 2024,
+    "condition": "first_occupancy",
+    "availability_date": "2026-09-01",
+    "district": "Mitte",
+    "energy_class": "A+",
+    "heating_type": "heat_pump",
+    "energy_demand_kwh": 28.5,
+    "energy_certificate_type": "Bedarfsausweis",
+    "balcony": true,
+    "elevator": true,
+    "fitted_kitchen": true,
+    "barrier_free": true,
+    "parking": true
+  }
+}

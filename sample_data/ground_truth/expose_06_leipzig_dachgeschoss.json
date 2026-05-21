@@ -1,0 +1,27 @@
+{
+  "document": "expose_06_leipzig_dachgeschoss.pdf",
+  "fields": {
+    "title": "Sanierte Dachgeschosswohnung in Leipzig-Süd",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 389500.0,
+    "living_area_sqm": 104.0,
+    "postal_code": "04275",
+    "city": "Leipzig",
+    "street": "Karl-Liebknecht-Straße",
+    "house_number": "88",
+    "rooms": 3.5,
+    "floor": 4,
+    "total_floors": 4,
+    "year_built": 1920,
+    "condition": "renovated",
+    "availability_date": "2026-06-15",
+    "district": "Südvorstadt",
+    "energy_class": "B",
+    "heating_type": "gas",
+    "energy_demand_kwh": 74.0,
+    "balcony": true,
+    "fitted_kitchen": true,
+    "cellar": true
+  }
+}

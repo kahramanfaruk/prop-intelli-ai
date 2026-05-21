@@ -1,0 +1,29 @@
+{
+  "document": "expose_01_nuernberg_eigentumswohnung.pdf",
+  "fields": {
+    "title": "Moderne 3-Zimmer-Eigentumswohnung mit Balkon in Nürnberg-Gärten",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 449000.0,
+    "living_area_sqm": 92.0,
+    "postal_code": "90408",
+    "city": "Nürnberg",
+    "street": "Bucher Straße",
+    "house_number": "42",
+    "rooms": 3.0,
+    "floor": 2,
+    "total_floors": 4,
+    "year_built": 1998,
+    "condition": "modernised",
+    "availability_date": "2026-07-01",
+    "district": "Nordstadt",
+    "energy_class": "C",
+    "heating_type": "gas",
+    "energy_demand_kwh": 98.0,
+    "energy_certificate_type": "Bedarfsausweis",
+    "balcony": true,
+    "cellar": true,
+    "elevator": true,
+    "fitted_kitchen": true
+  }
+}
