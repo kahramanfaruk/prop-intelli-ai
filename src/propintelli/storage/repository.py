@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import TypeVar
 
 from pydantic import BaseModel
-from sqlalchemy import create_engine, select
+from sqlalchemy import NullPool, create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from propintelli.errors import ErrorSeverity, StorageError
@@ -79,9 +79,20 @@ class SilverRepository:
             Path to the SQLite database file.
         """
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._engine = create_engine(f"sqlite:///{db_path}")
+        # NullPool closes each connection on return, which suits the discrete
+        # save/get/list access pattern over file-based SQLite and avoids leaking
+        # pooled connections across many short-lived repositories.
+        self._engine = create_engine(f"sqlite:///{db_path}", poolclass=NullPool)
         Base.metadata.create_all(self._engine)
         self._session_factory = sessionmaker(bind=self._engine)
+
+    def dispose(self) -> None:
+        """Release the underlying engine and its connection pool.
+
+        Call this when a repository is no longer needed in a long-running host;
+        short-lived processes can rely on interpreter teardown.
+        """
+        self._engine.dispose()
 
     def save_record(self, record: PropertyRecord) -> None:
         """Insert or replace a property record.
