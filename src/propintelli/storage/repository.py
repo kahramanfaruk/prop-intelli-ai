@@ -15,7 +15,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import create_engine, select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from propintelli.errors import ErrorSeverity, StorageError
 from propintelli.logging_setup import get_logger
@@ -294,10 +294,3 @@ def _to_record(orm: Property) -> PropertyRecord:
         energy=energy,
         quality=quality,
     )
-
-
-def _severity(value: str) -> "ErrorSeverity":
-    """Reconstruct an :class:`ErrorSeverity` from its stored value."""
-    from propintelli.errors import ErrorSeverity
-
-    return ErrorSeverity(value)

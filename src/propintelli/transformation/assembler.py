@@ -27,6 +27,8 @@ def assemble_record(
     normalized: NormalizedFields,
     quality: QualityReport,
     source_document: str,
+    *,
+    property_id: str | None = None,
 ) -> PropertyRecord:
     """Build a structured property record from normalised values.
 
@@ -38,6 +40,9 @@ def assemble_record(
         The computed quality report to attach.
     source_document : str
         Original document filename.
+    property_id : str or None, optional
+        Identifier for the record. When given (typically the Bronze document id),
+        it links the record to its source document; otherwise one is generated.
 
     Returns
     -------
@@ -53,6 +58,9 @@ def assemble_record(
             top_level[path[0]] = value
         else:
             nested[path[0]][path[1]] = value
+
+    if property_id is not None:
+        top_level["property_id"] = property_id
 
     return PropertyRecord(
         source_document=source_document,

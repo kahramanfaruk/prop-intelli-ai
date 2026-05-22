@@ -2,12 +2,29 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import fitz
 import pytest
 
+from propintelli.config import get_settings
 from propintelli.sampledata import SAMPLE_PROPERTIES, generate_samples
+
+
+@pytest.fixture(autouse=True)
+def _isolated_data_dir(
+    tmp_path: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[None]:
+    """Route the configured data directory to a temp dir for every test.
+
+    Keeps the repository clean: any Bronze/Silver/Gold artifacts written via the
+    process settings land under a per-test temporary directory.
+    """
+    monkeypatch.setenv("PROPINTELLI_DATA_DIR", str(tmp_path / "propintelli-data"))
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture(scope="session")

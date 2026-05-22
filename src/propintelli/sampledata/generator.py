@@ -296,6 +296,20 @@ def _flowables_prose(prop: SyntheticProperty, styles: dict[str, ParagraphStyle])
     if detail_bits:
         flow.append(Paragraph(" ".join(detail_bits) + ".", styles["body"]))
 
+    if prop.floor is not None and prop.total_floors is not None:
+        flow.append(
+            Paragraph(
+                f"Die Einheit liegt auf Etage {prop.floor} von {prop.total_floors}.", styles["body"]
+            )
+        )
+    if prop.plot_area_sqm is not None:
+        flow.append(
+            Paragraph(
+                f"Die Grundstücksfläche beträgt {_fmt_de_number(prop.plot_area_sqm)} m².",
+                styles["body"],
+            )
+        )
+
     features = _present_features_de(prop)
     if features:
         flow.append(
@@ -313,6 +327,8 @@ def _flowables_prose(prop: SyntheticProperty, styles: dict[str, ParagraphStyle])
         energy_bits.append(f"Heizungsart: {_HEATING_DE[prop.heating_type]}")
     if prop.energy_demand_kwh is not None:
         energy_bits.append(f"Energiebedarf {_fmt_de_number(prop.energy_demand_kwh)} kWh/(m²·a)")
+    if prop.energy_certificate_type is not None:
+        energy_bits.append(f"Energieausweis: {prop.energy_certificate_type}")
     if energy_bits:
         flow.append(Spacer(1, 6))
         flow.append(Paragraph(" · ".join(energy_bits) + ".", styles["body"]))
