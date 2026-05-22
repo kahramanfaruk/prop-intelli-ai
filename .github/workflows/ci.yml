@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-quality:
+    name: Python — lint, type, test, e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Mypy (strict)
+        run: uv run mypy
+
+      - name: Tests + coverage gate
+        run: uv run pytest --cov=propintelli --cov-report=term-missing --cov-fail-under=80
+
+      - name: End-to-end (generate → batch → evaluate)
+        run: |
+          uv run propintelli generate-samples
+          uv run propintelli batch sample_data/raw
+          uv run propintelli evaluate
+
+  dotnet-service:
+    name: C# — build & test IngestionApi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore services/IngestionApi.Tests/IngestionApi.Tests.csproj
+
+      - name: Build
+        run: dotnet build services/IngestionApi.Tests/IngestionApi.Tests.csproj -c Release --no-restore
+
+      - name: Test
+        run: dotnet test services/IngestionApi.Tests/IngestionApi.Tests.csproj -c Release --no-build --verbosity normal
+
+  docker-build:
+    name: Docker — build all images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Python worker image
+        run: docker build -f docker/Dockerfile.python -t propintelli/worker .
+
+      - name: Build Streamlit UI image
+        run: docker build -f docker/Dockerfile.streamlit -t propintelli/ui .
+
+      - name: Build C# API image
+        run: docker build -f services/IngestionApi/Dockerfile -t propintelli/api services

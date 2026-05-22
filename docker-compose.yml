@@ -1,0 +1,50 @@
+# PropIntelli AI — full local stack.
+#
+#   docker compose up --build
+#
+# Brings up the C# ingestion API, the Streamlit review UI, and a one-shot Python
+# worker that batch-processes the bundled sample exposés. All three share a single
+# data volume so the Bronze raw store and the Silver database are common.
+
+services:
+  api:
+    build:
+      context: ./services
+      dockerfile: IngestionApi/Dockerfile
+    image: propintelli/ingestion-api
+    environment:
+      PROPINTELLI_DATA_DIR: /data
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - "8080:8080"
+    volumes:
+      - propintelli-data:/data
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.python
+    image: propintelli/worker
+    environment:
+      PROPINTELLI_DATA_DIR: /data
+      PROPINTELLI_LLM_PROVIDER: none
+    command: ["batch", "/sample_data/raw"]
+    volumes:
+      - propintelli-data:/data
+      - ./sample_data:/sample_data:ro
+
+  ui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.streamlit
+    image: propintelli/ui
+    environment:
+      PROPINTELLI_DATA_DIR: /data
+      PROPINTELLI_LLM_PROVIDER: none
+    ports:
+      - "8501:8501"
+    volumes:
+      - propintelli-data:/data
+
+volumes:
+  propintelli-data:

@@ -1,0 +1,26 @@
+# Streamlit human-in-the-loop UI image.
+# Built from the repository root: `docker build -f docker/Dockerfile.streamlit .`
+FROM python:3.13-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+ENV UV_PROJECT_ENVIRONMENT=/usr/local \
+    UV_COMPILE_BYTECODE=1 \
+    PROPINTELLI_DATA_DIR=/data
+
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --no-dev --extra ui --extra llm --no-install-project
+COPY src ./src
+COPY config ./config
+COPY app ./app
+RUN uv sync --no-dev --extra ui --extra llm
+
+VOLUME ["/data"]
+EXPOSE 8501
+ENTRYPOINT ["streamlit", "run", "app/streamlit_app.py", \
+    "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]
