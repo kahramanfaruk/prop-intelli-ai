@@ -16,7 +16,6 @@ ENV UV_PROJECT_ENVIRONMENT=/usr/local \
 COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --no-dev --extra ui --extra llm --no-install-project
 COPY src ./src
-COPY config ./config
 COPY app ./app
 RUN uv sync --no-dev --extra ui --extra llm
 

@@ -21,7 +21,6 @@ RUN uv sync --no-dev --extra ocr --extra llm --extra ui --no-install-project
 
 # Install the project itself.
 COPY src ./src
-COPY config ./config
 RUN uv sync --no-dev --extra ocr --extra llm --extra ui
 
 VOLUME ["/data"]
