@@ -1,0 +1,25 @@
+{
+  "document": "holdout_01_karlsruhe_reihenhaus.pdf",
+  "fields": {
+    "title": "Charmantes Reihenmittelhaus in Karlsruhe-Durlach",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 489000.0,
+    "living_area_sqm": 138.0,
+    "plot_area_sqm": 220.0,
+    "rooms": 5.0,
+    "year_built": 1981,
+    "condition": "well_kept",
+    "street": "Pfinztalstraße",
+    "house_number": "30",
+    "postal_code": "76227",
+    "city": "Karlsruhe",
+    "energy_class": "E",
+    "heating_type": "gas",
+    "energy_demand_kwh": 142.0,
+    "energy_certificate_type": "Verbrauchsausweis",
+    "fitted_kitchen": true,
+    "cellar": true,
+    "elevator": false
+  }
+}

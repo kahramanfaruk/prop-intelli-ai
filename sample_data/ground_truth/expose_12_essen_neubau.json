@@ -1,0 +1,30 @@
+{
+  "document": "expose_12_essen_neubau.pdf",
+  "fields": {
+    "title": "Neubau: barrierefreie 3-Zimmer-Wohnung in Essen-Rüttenscheid",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 580000.0,
+    "living_area_sqm": 95.0,
+    "postal_code": "45130",
+    "city": "Essen",
+    "street": "Rüttenscheider Straße",
+    "house_number": "88",
+    "rooms": 3.0,
+    "floor": 1,
+    "total_floors": 4,
+    "year_built": 2025,
+    "condition": "new_build",
+    "availability_date": "2026-12-01",
+    "district": "Rüttenscheid",
+    "energy_class": "A",
+    "heating_type": "pellet",
+    "energy_demand_kwh": 35.0,
+    "energy_certificate_type": "Bedarfsausweis",
+    "barrier_free": true,
+    "elevator": true,
+    "fitted_kitchen": true,
+    "parking": true,
+    "garden": false
+  }
+}

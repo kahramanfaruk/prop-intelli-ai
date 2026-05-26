@@ -1,0 +1,27 @@
+{
+  "document": "expose_11_dresden_warmmiete.pdf",
+  "fields": {
+    "title": "Möblierte 2,5-Zimmer-Wohnung zur Miete in Dresden-Neustadt",
+    "listing_type": "rent",
+    "price_kind": "warm_rent",
+    "price_eur": 1450.0,
+    "living_area_sqm": 70.0,
+    "postal_code": "01099",
+    "city": "Dresden",
+    "street": "Alaunstraße",
+    "house_number": "12",
+    "rooms": 2.5,
+    "floor": 2,
+    "total_floors": 5,
+    "year_built": 1955,
+    "condition": "well_kept",
+    "availability_date": "2026-09-01",
+    "district": "Neustadt",
+    "energy_class": "G",
+    "heating_type": "electric",
+    "energy_demand_kwh": 212.0,
+    "furnished": true,
+    "balcony": true,
+    "cellar": false
+  }
+}

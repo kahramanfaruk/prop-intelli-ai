@@ -10,7 +10,9 @@ Event Grid trigger; the local filesystem implementation keeps the same contract.
 from __future__ import annotations
 
 import hashlib
+import json
 import uuid
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -22,6 +24,26 @@ from propintelli.logging_setup import get_logger
 logger = get_logger(__name__)
 
 _MANIFEST_NAME = "manifest.json"
+# Manifest source-filename keys across producers (Python snake_case, C# camelCase).
+_SOURCE_KEYS = ("source_document", "sourceDocument", "SourceDocument")
+
+
+class BronzeEntry(BaseModel):
+    """A document already resident in the Bronze store.
+
+    Attributes
+    ----------
+    document_id : str
+        The store-assigned identifier (the document's directory name).
+    stored_path : Path
+        Path to the stored raw file.
+    source_document : str
+        Original filename, recovered from the manifest when available.
+    """
+
+    document_id: str
+    stored_path: Path
+    source_document: str
 
 
 class BronzeDocument(BaseModel):
@@ -116,6 +138,50 @@ class DocumentStore:
             extra={"document_id": document_id, "source_document": document.source_document},
         )
         return document
+
+    def iter_documents(self) -> Iterator[BronzeEntry]:
+        """Yield every document resident in the Bronze store.
+
+        Enumerates documents written by *any* producer — the Python pipeline or
+        the C# ingestion API — by scanning for the stored ``original.*`` file in
+        each document directory. The original filename is read from the manifest
+        when present, tolerating both snake_case and camelCase manifest keys.
+
+        Yields
+        ------
+        BronzeEntry
+            One entry per stored document, in directory-name order.
+        """
+        if not self._root.exists():
+            return
+        for directory in sorted(self._root.iterdir()):
+            if not directory.is_dir():
+                continue
+            originals = sorted(directory.glob("original.*"))
+            if not originals:
+                continue
+            stored_path = originals[0]
+            yield BronzeEntry(
+                document_id=directory.name,
+                stored_path=stored_path,
+                source_document=self._read_source_document(directory, stored_path.name),
+            )
+
+    @staticmethod
+    def _read_source_document(directory: Path, fallback: str) -> str:
+        """Recover the original filename from a manifest, or fall back."""
+        manifest = directory / _MANIFEST_NAME
+        if not manifest.exists():
+            return fallback
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return fallback
+        for key in _SOURCE_KEYS:
+            value = data.get(key)
+            if isinstance(value, str) and value:
+                return value
+        return fallback
 
     def ingest_path(self, path: Path) -> BronzeDocument:
         """Store a document read from a local path.

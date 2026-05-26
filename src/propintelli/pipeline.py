@@ -17,7 +17,7 @@ from propintelli.confidence import compute_quality, source_quality_score
 from propintelli.config import Settings, get_settings
 from propintelli.errors import ProcessingError, PropIntelliError
 from propintelli.extraction.engine import run_extraction
-from propintelli.ingestion.document_store import DocumentStore
+from propintelli.ingestion.document_store import BronzeEntry, DocumentStore
 from propintelli.logging_setup import get_logger
 from propintelli.preprocessing.text_extractor import extract_text
 from propintelli.schemas.property_record import PropertyRecord
@@ -114,6 +114,56 @@ class Pipeline:
         """
         bronze = self._store.ingest_bytes(data, filename)
         return self._process(bronze.document_id, bronze.stored_path, bronze.source_document)
+
+    def process_stored(self, entry: BronzeEntry) -> PipelineResult:
+        """Process a document already resident in the Bronze store.
+
+        Unlike :meth:`process_path`, this does not re-ingest: it processes the
+        existing Bronze document in place, preserving its identifier. This is how
+        documents ingested by another producer (e.g. the C# API) are extracted.
+
+        Parameters
+        ----------
+        entry : BronzeEntry
+            The stored document to process.
+
+        Returns
+        -------
+        PipelineResult
+            The outcome (record or structured error).
+        """
+        return self._process(entry.document_id, entry.stored_path, entry.source_document)
+
+    def process_pending(self) -> list[PipelineResult]:
+        """Process every Bronze document that has no processing-run audit yet.
+
+        Idempotent and producer-agnostic: it picks up documents ingested by the
+        C# API (or any other writer) into the shared Bronze store and runs them
+        through extraction, skipping any already attempted. This is the worker
+        side of the upload -> extract integration.
+
+        Returns
+        -------
+        list of PipelineResult
+            Results for the documents processed in this pass (empty when none
+            were pending).
+
+        Raises
+        ------
+        ValueError
+            If the pipeline was constructed without a repository, since the audit
+            log is required to determine which documents are still pending.
+        """
+        if self._repository is None:
+            msg = "process_pending requires a repository to track processed documents"
+            raise ValueError(msg)
+        already_done = self._repository.processed_document_ids()
+        results: list[PipelineResult] = []
+        for entry in self._store.iter_documents():
+            if entry.document_id in already_done:
+                continue
+            results.append(self.process_stored(entry))
+        return results
 
     def _process(self, document_id: str, pdf_path: Path, source_document: str) -> PipelineResult:
         """Run all stages for an already-ingested document."""

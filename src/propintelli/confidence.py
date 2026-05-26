@@ -17,7 +17,7 @@ from propintelli.config import Settings, get_settings
 from propintelli.errors import ErrorSeverity
 from propintelli.preprocessing.text_extractor import TextSource
 from propintelli.schemas.enums import ReviewStatus
-from propintelli.schemas.fields import PROPERTY_FIELDS, FieldKind
+from propintelli.schemas.fields import required_field_names
 from propintelli.schemas.property_record import QualityReport, ValidationFinding
 from propintelli.transformation.normalize import NormalizedFields
 
@@ -26,11 +26,13 @@ _WEIGHT_COMPLETENESS = 0.30
 _WEIGHT_VALIDATION = 0.20
 _WEIGHT_SOURCE = 0.10
 
-# Completeness is measured over the non-boolean "core" fields, since boolean
-# equipment features are legitimately sparse and would otherwise depress it.
-_CORE_FIELDS: tuple[str, ...] = tuple(
-    name for name, spec in PROPERTY_FIELDS.items() if spec.kind is not FieldKind.BOOLEAN
-)
+# Completeness measures whether the fields *every* valid listing must carry (the
+# required fields: price, living area, postal code, city) were extracted. Optional
+# fields are legitimately sparse — a flat has no plot area, a sparse listing omits
+# the construction year — so their absence is a property of the document, not an
+# extraction failure, and must not depress confidence. Conflating the two would
+# penalise a correctly extracted sparse listing.
+_REQUIRED_FIELDS: tuple[str, ...] = required_field_names()
 
 _SOURCE_QUALITY: dict[TextSource, float] = {
     TextSource.DIGITAL: 1.0,
@@ -108,8 +110,8 @@ def compute_quality(
     """
     settings = settings or get_settings()
     extraction_confidence = _mean(list(normalized.confidences.values()))
-    present_core = sum(1 for name in _CORE_FIELDS if name in normalized.values)
-    completeness = present_core / len(_CORE_FIELDS) if _CORE_FIELDS else 0.0
+    present_required = sum(1 for name in _REQUIRED_FIELDS if name in normalized.values)
+    completeness = present_required / len(_REQUIRED_FIELDS) if _REQUIRED_FIELDS else 1.0
 
     overall = (
         _WEIGHT_EXTRACTION * extraction_confidence

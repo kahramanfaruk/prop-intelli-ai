@@ -15,16 +15,30 @@ public static class ApiEndpoints
 
         app.MapPost(
                 "/api/documents/upload",
-                async (IFormFile file, FileDocumentStore store, CancellationToken ct) =>
+                async (
+                    IFormFile file,
+                    FileDocumentStore store,
+                    IConfiguration config,
+                    CancellationToken ct) =>
                 {
                     if (file.Length == 0)
                     {
                         return Results.BadRequest(new { error = "A non-empty file is required." });
                     }
 
+                    var maxBytes = config.GetValue<long?>("Upload:MaxBytes") ?? 26_214_400L;
+                    if (file.Length > maxBytes)
+                    {
+                        return Results.Json(
+                            new { error = $"File exceeds the {maxBytes}-byte upload limit." },
+                            statusCode: StatusCodes.Status413PayloadTooLarge);
+                    }
+
                     await using var stream = file.OpenReadStream();
                     try
                     {
+                        // The store validates the PDF signature; a non-PDF surfaces as
+                        // ArgumentException and is reported as a 400 below.
                         var document = await store.IngestAsync(stream, file.FileName, ct);
                         return Results.Ok(new UploadResponse(
                             document.DocumentId, "received", document.Sha256, document.SizeBytes));

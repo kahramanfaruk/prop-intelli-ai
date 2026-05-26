@@ -21,6 +21,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from reportlab import rl_config
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -42,6 +43,11 @@ from propintelli.schemas.enums import (
     PriceKind,
     PropertyCondition,
 )
+
+# Reproducible output: reportlab otherwise embeds a creation timestamp and a
+# random document ID, which would make the committed PDFs differ on every run.
+# Invariant mode fixes both so the corpus is byte-stable across regenerations.
+rl_config.invariant = 1
 
 # --- German rendering vocabularies -----------------------------------------
 _HEATING_DE: dict[HeatingType, str] = {
@@ -113,6 +119,10 @@ class SyntheticProperty:
     energy_demand_kwh: float | None = None
     energy_certificate_type: str | None = None
     features: dict[str, bool] = field(default_factory=dict)
+    # Ancillary monetary lines (service charge, broker fee, deposit, …) rendered
+    # alongside the price. They are *not* part of the ground truth: the extractor
+    # must keep them out of the headline price. Each entry is a (label, value).
+    ancillary_costs: tuple[tuple[str, str], ...] = ()
 
 
 # --- Number / date formatting helpers ---------------------------------------
@@ -136,6 +146,20 @@ def _fmt_de_date(value: date) -> str:
 def _present_features_de(prop: SyntheticProperty) -> list[str]:
     """Return German labels for the features that are present (``True``)."""
     return [_FEATURE_DE[name] for name, present in prop.features.items() if present]
+
+
+def _absent_sentence(prop: SyntheticProperty) -> str | None:
+    """Render explicitly-absent features as a negated German sentence.
+
+    Returns ``None`` when no feature is marked absent. Each item carries its own
+    "ohne" so a comma-separated list negates every feature individually, matching
+    how the deterministic extractor scopes negation to a clause.
+    """
+    absent = [f"ohne {_FEATURE_DE[name]}" for name, present in prop.features.items() if not present]
+    if not absent:
+        return None
+    sentence = ", ".join(absent)
+    return sentence[0].upper() + sentence[1:] + "."
 
 
 # --- Ground truth ------------------------------------------------------------
@@ -182,7 +206,10 @@ def ground_truth(prop: SyntheticProperty) -> dict[str, Any]:
         "energy_certificate_type": prop.energy_certificate_type,
     }
     fields.update({key: value for key, value in optional.items() if value is not None})
-    fields.update({name: True for name, present in prop.features.items() if present})
+    # Every *stated* feature is ground truth, whether present (True) or
+    # explicitly absent (False); only unstated features (omitted from the dict)
+    # are expected to be None in the extracted record.
+    fields.update(dict(prop.features))
     return {"document": f"{prop.document_stem}.pdf", "fields": fields}
 
 
@@ -244,7 +271,8 @@ def _flowables_tabular(prop: SyntheticProperty, styles: dict[str, ParagraphStyle
     )
     flow.append(Spacer(1, 6))
     flow.append(Paragraph("Objektdaten", styles["h2"]))
-    table = Table([[k, v] for k, v in _data_rows(prop)], colWidths=[55 * mm, 110 * mm])
+    rows = [*_data_rows(prop), *prop.ancillary_costs]
+    table = Table([[k, v] for k, v in rows], colWidths=[55 * mm, 110 * mm])
     table.setStyle(
         TableStyle(
             [
@@ -265,6 +293,9 @@ def _flowables_tabular(prop: SyntheticProperty, styles: dict[str, ParagraphStyle
                 bulletType="bullet",
             )
         )
+    absent = _absent_sentence(prop)
+    if absent:
+        flow.append(Paragraph(absent, styles["body"]))
     return flow
 
 
@@ -287,6 +318,9 @@ def _flowables_prose(prop: SyntheticProperty, styles: dict[str, ParagraphStyle])
         f"Der {_PRICE_KIND_DE[prop.price_kind]} liegt bei {_fmt_eur(prop.price_eur)} EUR."
     )
     flow.append(Paragraph(price_sentence, styles["body"]))
+    if prop.ancillary_costs:
+        extras = ", ".join(f"{label} {value}" for label, value in prop.ancillary_costs)
+        flow.append(Paragraph(f"Hinzu kommen: {extras}.", styles["body"]))
 
     detail_bits: list[str] = []
     if prop.year_built is not None:
@@ -315,6 +349,9 @@ def _flowables_prose(prop: SyntheticProperty, styles: dict[str, ParagraphStyle])
         flow.append(
             Paragraph("Zur Ausstattung zählen: " + ", ".join(features) + ".", styles["body"])
         )
+    absent = _absent_sentence(prop)
+    if absent:
+        flow.append(Paragraph(absent, styles["body"]))
     if prop.availability_date is not None:
         flow.append(
             Paragraph(f"Bezugsfrei ab {_fmt_de_date(prop.availability_date)}.", styles["body"])
@@ -357,11 +394,16 @@ def _flowables_sectioned(prop: SyntheticProperty, styles: dict[str, ParagraphSty
         }:
             continue
         flow.append(Paragraph(f"{label}: {value}", styles["body"]))
+    for label, value in prop.ancillary_costs:
+        flow.append(Paragraph(f"{label}: {value}", styles["body"]))
 
     features = _present_features_de(prop)
     if features:
         flow.append(Paragraph("Ausstattung", styles["h2"]))
         flow.append(Paragraph(", ".join(features), styles["body"]))
+    absent = _absent_sentence(prop)
+    if absent:
+        flow.append(Paragraph(absent, styles["body"]))
 
     flow.append(Paragraph("Energie", styles["h2"]))
     if prop.energy_class is not None:
@@ -690,5 +732,94 @@ SAMPLE_PROPERTIES: list[SyntheticProperty] = [
         heating_type=HeatingType.HEAT_PUMP,
         energy_demand_kwh=88.0,
         features={"terrace": True, "elevator": True, "fitted_kitchen": True},
+    ),
+    # --- Variance & edge-case coverage --------------------------------------
+    # Warm rent (not just sale/cold-rent), furnished, electric heating, energy
+    # class G, an ancillary deposit (must not be read as the price), and an
+    # explicitly-absent feature ("ohne Keller").
+    SyntheticProperty(
+        document_stem="expose_11_dresden_warmmiete",
+        layout="prose",
+        title="Möblierte 2,5-Zimmer-Wohnung zur Miete in Dresden-Neustadt",
+        listing_type=ListingType.RENT,
+        price_kind=PriceKind.WARM_RENT,
+        price_eur=Decimal("1450"),
+        living_area_sqm=70.0,
+        rooms=2.5,
+        floor=2,
+        total_floors=5,
+        year_built=1955,
+        condition=PropertyCondition.WELL_KEPT,
+        availability_date=date(2026, 9, 1),
+        street="Alaunstraße",
+        house_number="12",
+        postal_code="01099",
+        city="Dresden",
+        district="Neustadt",
+        energy_class=EnergyClass.G,
+        heating_type=HeatingType.ELECTRIC,
+        energy_demand_kwh=212.0,
+        features={"furnished": True, "balcony": True, "cellar": False},
+        ancillary_costs=(("Kaution", "4.350 €"),),
+    ),
+    # New build, pellet heating, energy class A, barrier-free, with service
+    # charge and broker commission listed beside the price, plus "ohne Garten".
+    SyntheticProperty(
+        document_stem="expose_12_essen_neubau",
+        layout="tabular",
+        title="Neubau: barrierefreie 3-Zimmer-Wohnung in Essen-Rüttenscheid",
+        listing_type=ListingType.SALE,
+        price_kind=PriceKind.PURCHASE,
+        price_eur=Decimal("580000"),
+        living_area_sqm=95.0,
+        rooms=3.0,
+        floor=1,
+        total_floors=4,
+        year_built=2025,
+        condition=PropertyCondition.NEW_BUILD,
+        availability_date=date(2026, 12, 1),
+        street="Rüttenscheider Straße",
+        house_number="88",
+        postal_code="45130",
+        city="Essen",
+        district="Rüttenscheid",
+        energy_class=EnergyClass.A,
+        heating_type=HeatingType.PELLET,
+        energy_demand_kwh=35.0,
+        energy_certificate_type="Bedarfsausweis",
+        features={
+            "barrier_free": True,
+            "elevator": True,
+            "fitted_kitchen": True,
+            "parking": True,
+            "garden": False,
+        },
+        ancillary_costs=(("Hausgeld", "320 €"), ("Provision", "3,57%")),
+    ),
+    # Old building needing renovation, solar heating, worst energy class H, a
+    # service charge, and "ohne Balkon".
+    SyntheticProperty(
+        document_stem="expose_13_hannover_altbau",
+        layout="sectioned",
+        title="Sanierungsbedürftige Altbauwohnung in Hannover-List",
+        listing_type=ListingType.SALE,
+        price_kind=PriceKind.PURCHASE,
+        price_eur=Decimal("410000"),
+        living_area_sqm=88.0,
+        rooms=3.0,
+        floor=3,
+        total_floors=4,
+        year_built=1925,
+        condition=PropertyCondition.NEEDS_RENOVATION,
+        street="Podbielskistraße",
+        house_number="25",
+        postal_code="30161",
+        city="Hannover",
+        district="List",
+        energy_class=EnergyClass.H,
+        heating_type=HeatingType.SOLAR,
+        energy_demand_kwh=265.0,
+        features={"cellar": True, "parking": True, "balcony": False},
+        ancillary_costs=(("Hausgeld", "280 €"),),
     ),
 ]

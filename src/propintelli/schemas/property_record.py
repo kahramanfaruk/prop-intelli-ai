@@ -107,7 +107,9 @@ class QualityReport(BaseModel):
     field_provenance : dict of str to Provenance
         Origin per canonical field.
     completeness : float
-        Fraction of expected fields that were populated, in ``[0, 1]``.
+        Fraction of the *required* fields (price, living area, postal code,
+        city) that were populated, in ``[0, 1]``. Optional fields are
+        legitimately sparse and do not count against completeness.
     validation_pass_rate : float
         Fraction of executed validation rules that passed, in ``[0, 1]``.
     review_status : ReviewStatus

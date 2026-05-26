@@ -20,6 +20,8 @@ from propintelli.extraction.vocabulary import (
     ENERGY_CERTIFICATE_PATTERNS,
     FEATURE_PATTERNS,
     HEATING_PATTERNS,
+    NEGATION_PATTERN,
+    NON_PRICE_LABEL_PATTERN,
     PRICE_LABEL_PATTERNS,
 )
 from propintelli.schemas.enums import ListingType, PriceKind, Provenance
@@ -29,6 +31,13 @@ _FLAGS = re.IGNORECASE
 # A German monetary/decimal amount: thousands separated by dots, decimals by comma.
 _AMOUNT = r"(?:\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?)"
 _AREA_UNIT = r"(?:m²|m2|qm)"
+# Maximum characters allowed between a price label and its amount. Kept tight so
+# the extractor cannot skip across an "auf Anfrage" gap onto an unrelated number.
+_PRICE_GAP = 30
+_NON_PRICE = re.compile(NON_PRICE_LABEL_PATTERN, _FLAGS)
+_NEGATION = re.compile(NEGATION_PATTERN, _FLAGS)
+# Clause separators that bound the window scanned for a feature's negation cue.
+_CLAUSE_SEPARATORS = (".", ";", ":", "\n", ",", "•", "·", "|")
 _STREET_SUFFIX_SUBSTRINGS = (
     "straße",
     "strasse",
@@ -52,32 +61,47 @@ def _snippet(text: str, start: int, end: int, pad: int = 25) -> str:
     return re.sub(r"\s+", " ", window).strip()
 
 
-def _value(text: str, match: re.Match[str], raw: str, confidence: float) -> FieldValue:
-    """Build a deterministic :class:`FieldValue` from a regex match."""
+def _value_span(text: str, start: int, end: int, raw: str, confidence: float) -> FieldValue:
+    """Build a deterministic :class:`FieldValue` from an absolute text span."""
     return FieldValue(
         raw_value=raw,
         confidence=confidence,
         provenance=Provenance.DETERMINISTIC,
-        source_snippet=_snippet(text, match.start(), match.end()),
+        source_snippet=_snippet(text, start, end),
     )
 
 
+def _value(text: str, match: re.Match[str], raw: str, confidence: float) -> FieldValue:
+    """Build a deterministic :class:`FieldValue` from a regex match."""
+    return _value_span(text, match.start(), match.end(), raw, confidence)
+
+
 def _extract_price(text: str, fields: dict[str, FieldValue]) -> None:
-    """Extract price, price kind, and the implied listing type."""
+    """Extract price, price kind, and the implied listing type.
+
+    Price labels are tried in priority order. For each, the nearest following
+    amount is read within a tight gap and rejected if an ancillary-cost label
+    (Hausgeld, Nebenkosten, Provision, …) governs it, so an exposé listing
+    several monetary amounts does not yield the wrong one as the headline price.
+    """
+    amount_re = re.compile(rf"[^0-9]{{0,{_PRICE_GAP}}}({_AMOUNT})\s*(€|eur|euro)?", _FLAGS)
     for label_pattern, kind in PRICE_LABEL_PATTERNS:
-        match = re.search(
-            rf"(?:{label_pattern})[^0-9]{{0,40}}({_AMOUNT})\s*(€|eur|euro)?",
-            text,
-            _FLAGS,
-        )
-        if not match:
-            continue
-        confidence = 0.92 if match.group(2) else 0.82
-        listing = ListingType.SALE if kind is PriceKind.PURCHASE else ListingType.RENT
-        fields["price_eur"] = _value(text, match, match.group(1), confidence)
-        fields["price_kind"] = _value(text, match, kind.value, confidence)
-        fields["listing_type"] = _value(text, match, listing.value, confidence - 0.05)
-        return
+        for label in re.finditer(label_pattern, text, _FLAGS):
+            tail = text[label.end() :]
+            amount = amount_re.match(tail)
+            if amount is None:
+                continue
+            if _NON_PRICE.search(tail[: amount.start(1)]):
+                continue  # the amount belongs to an ancillary cost, not the price
+            confidence = 0.92 if amount.group(2) else 0.82
+            listing = ListingType.SALE if kind is PriceKind.PURCHASE else ListingType.RENT
+            end = label.end() + amount.end(1)
+            fields["price_eur"] = _value_span(text, label.start(), end, amount.group(1), confidence)
+            fields["price_kind"] = _value_span(text, label.start(), end, kind.value, confidence)
+            fields["listing_type"] = _value_span(
+                text, label.start(), end, listing.value, confidence - 0.05
+            )
+            return
 
 
 def _extract_area(text: str, fields: dict[str, FieldValue]) -> None:
@@ -144,10 +168,11 @@ def _extract_availability(text: str, fields: dict[str, FieldValue]) -> None:
 
 def _extract_location(text: str, fields: dict[str, FieldValue]) -> None:
     """Extract postal code, city, street, house number, and district."""
-    # Postal code + city: keep the city on a single line (space-separated tokens
-    # only) so a following heading on the next line is not absorbed.
+    # Postal code + city: the city is a run of capitalised tokens after the code.
+    # Periods are excluded from the token so a sentence boundary ("90408 Nürnberg.
+    # Bezugsfrei …") does not absorb the next sentence's leading word.
     place = re.search(
-        r"\b(\d{5})[ ]+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\-]+(?:[ ][A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\-]+)*)",
+        r"\b(\d{5})[ ]+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]+(?:[ ][A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]+)*)",
         text,
     )
     if place:
@@ -163,13 +188,19 @@ def _extract_location(text: str, fields: dict[str, FieldValue]) -> None:
     )
     for address in address_pattern.finditer(text):
         if any(token in address.group(1).lower() for token in _STREET_SUFFIX_SUBSTRINGS):
-            fields["street"] = _value(text, address, address.group(1).strip(), 0.8)
+            # Drop any preceding sentence fragment captured before a ". " boundary
+            # ("Lage: Wiehre. Sundgauallee" -> "Sundgauallee").
+            street = address.group(1).strip().rsplit(". ", 1)[-1].strip()
+            fields["street"] = _value(text, address, street, 0.8)
             fields["house_number"] = _value(text, address, address.group(2).strip(), 0.8)
             break
 
-    district = re.search(r"\(([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,})\)", text) or re.search(
-        r"stadtteil\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]+)", text, _FLAGS
-    )
+    # A parenthetical district is only trusted when it follows a postal code (an
+    # address context); otherwise "Verhandlungsbasis (Kaufpreis)" would be read as
+    # a district. The "Stadtteil <name>" phrasing is an independent fallback.
+    district = re.search(
+        r"\b\d{5}\b[^\n(]{0,40}?\(([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,})\)", text
+    ) or re.search(r"stadtteil\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]+)", text, _FLAGS)
     if district:
         fields["district"] = _value(text, district, district.group(1).strip(), 0.6)
 
@@ -214,12 +245,54 @@ def _extract_condition(text: str, fields: dict[str, FieldValue]) -> None:
             return
 
 
+def _is_negated(text: str, match_start: int) -> bool:
+    """Whether a negation cue precedes a feature mention within its clause.
+
+    The window scanned runs from the nearest preceding clause separator up to
+    the mention, so "kein Balkon" negates *balcony* while a later, separate
+    "Keller vorhanden" in the same sentence is unaffected.
+
+    Parameters
+    ----------
+    text : str
+        The full document text.
+    match_start : int
+        Start offset of the feature keyword match.
+
+    Returns
+    -------
+    bool
+        ``True`` if a negation token governs the mention.
+    """
+    clause_start = max(
+        (text.rfind(separator, 0, match_start) + 1 for separator in _CLAUSE_SEPARATORS),
+        default=0,
+    )
+    return _NEGATION.search(text[clause_start:match_start]) is not None
+
+
 def _extract_features(text: str, fields: dict[str, FieldValue]) -> None:
-    """Extract boolean equipment features; only positive evidence is recorded."""
+    """Extract tri-state equipment features, honouring negated mentions.
+
+    Each feature keyword may appear several times; a single non-negated mention
+    is decisive evidence of presence (``true``), so "kein Stellplatz, aber
+    Tiefgarage" still yields parking. Only when every mention is negated is the
+    feature recorded as an explicit absence (``false``); with no mention at all
+    the feature is left unset (not stated).
+    """
     for name, pattern in FEATURE_PATTERNS.items():
-        match = re.search(pattern, text, _FLAGS)
-        if match:
-            fields[name] = _value(text, match, "true", 0.9)
+        positive: re.Match[str] | None = None
+        negated: re.Match[str] | None = None
+        for match in re.finditer(pattern, text, _FLAGS):
+            if _is_negated(text, match.start()):
+                negated = negated or match
+            else:
+                positive = match
+                break
+        if positive is not None:
+            fields[name] = _value(text, positive, "true", 0.9)
+        elif negated is not None:
+            fields[name] = _value(text, negated, "false", 0.85)
 
 
 _STOP_LINE = re.compile(

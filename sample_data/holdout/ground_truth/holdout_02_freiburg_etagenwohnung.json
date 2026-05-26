@@ -1,0 +1,28 @@
+{
+  "document": "holdout_02_freiburg_etagenwohnung.pdf",
+  "fields": {
+    "title": "Helle 3-Zimmer-Wohnung zur Miete - Freiburg im Breisgau",
+    "listing_type": "rent",
+    "price_kind": "cold_rent",
+    "price_eur": 1180.0,
+    "living_area_sqm": 82.5,
+    "rooms": 3.0,
+    "floor": 2,
+    "total_floors": 4,
+    "year_built": 2004,
+    "street": "Sundgauallee",
+    "house_number": "14",
+    "postal_code": "79110",
+    "city": "Freiburg",
+    "district": "Wiehre",
+    "availability_date": "2026-10-01",
+    "energy_class": "B",
+    "heating_type": "district_heating",
+    "energy_demand_kwh": 68.0,
+    "energy_certificate_type": "Bedarfsausweis",
+    "balcony": true,
+    "fitted_kitchen": true,
+    "parking": true,
+    "cellar": false
+  }
+}

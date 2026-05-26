@@ -64,6 +64,48 @@ def test_deterministic_detects_rent_listing() -> None:
     assert fields["price_eur"].raw_value == "980"
 
 
+_NEGATION_TEXT = """Wohnung in Berlin
+Kaufpreis: 300.000 EUR
+Wohnfläche 70 m²
+Adresse: Hauptstraße 1, 10115 Berlin
+Kein Balkon, ohne Aufzug. Ein Keller ist vorhanden.
+Kein Stellplatz, aber eine Tiefgarage steht zur Verfügung.
+"""
+
+
+def test_deterministic_records_negated_features_as_false() -> None:
+    fields = extract_deterministic(_NEGATION_TEXT)
+    # Explicit absence is recorded as False, exercising the tri-state boolean.
+    assert fields["balcony"].raw_value == "false"
+    assert fields["elevator"].raw_value == "false"
+    # A non-negated mention in the same text still asserts presence.
+    assert fields["cellar"].raw_value == "true"
+
+
+def test_deterministic_positive_mention_overrides_earlier_negation() -> None:
+    # "Kein Stellplatz, aber ... Tiefgarage": one synonym is negated, another is
+    # present — a single positive mention is decisive evidence of presence.
+    fields = extract_deterministic(_NEGATION_TEXT)
+    assert fields["parking"].raw_value == "true"
+
+
+_MULTI_AMOUNT_TEXT = """Eigentumswohnung in Nürnberg
+Kaufpreis auf Anfrage. Hausgeld: 250 EUR monatlich.
+Provision: 3.570 EUR inkl. MwSt. Der Kaufpreis beträgt 449.000 €.
+Wohnfläche 92 m²
+Adresse: Bucher Straße 42, 90408 Nürnberg
+"""
+
+
+def test_deterministic_price_ignores_ancillary_costs() -> None:
+    # Hausgeld and Provision amounts precede the real price; the extractor must
+    # not capture them, and must skip the "auf Anfrage" Kaufpreis with no number.
+    fields = extract_deterministic(_MULTI_AMOUNT_TEXT)
+    assert fields["price_eur"].raw_value == "449.000"
+    assert fields["price_kind"].raw_value == "purchase"
+    assert fields["listing_type"].raw_value == "sale"
+
+
 def test_reconcile_passthrough_for_single_layer() -> None:
     layer_a = {"city": FieldValue(raw_value="Berlin", confidence=0.8)}
     merged, warnings = reconcile(layer_a, {})

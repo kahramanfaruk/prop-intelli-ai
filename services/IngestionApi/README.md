@@ -25,6 +25,29 @@ JSON is serialised as `snake_case` to match the Python schema contract. The
 Bronze directory is resolved from `PROPINTELLI_DATA_DIR` (shared with the Python
 services) or `Storage:DataDir` in `appsettings.json`.
 
+### Upload validation & limits
+
+`/api/documents/upload` is hardened against malformed and abusive input:
+
+- **PDF only** — the payload must begin with the `%PDF-` signature (magic bytes),
+  checked on the buffered content; a non-PDF is rejected with `400` regardless of
+  the declared content type.
+- **Size cap** — bounded by `Upload:MaxBytes` (default 25 MB), enforced both at
+  the framework's multipart limit and with an explicit `413` from the endpoint.
+
+Authentication is intentionally omitted for this take-home; in production the
+surface sits behind **Azure API Management + Microsoft Entra ID** (see the mapping
+below).
+
+### How an upload reaches the pipeline
+
+The API only ingests into Bronze; extraction is decoupled. The Python worker
+(`propintelli watch`, run by the `worker` service in `docker compose`) polls the
+shared Bronze store and processes any newly-ingested document into the Silver
+store. So `POST /api/documents/upload` → Bronze → worker → Silver, end to end,
+without the API and the extractor being directly coupled. (In production the poll
+becomes a Blob → Event Grid → Service Bus trigger.)
+
 ## Run locally
 
 ```bash

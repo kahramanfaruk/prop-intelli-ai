@@ -1,0 +1,26 @@
+{
+  "document": "expose_13_hannover_altbau.pdf",
+  "fields": {
+    "title": "Sanierungsbedürftige Altbauwohnung in Hannover-List",
+    "listing_type": "sale",
+    "price_kind": "purchase",
+    "price_eur": 410000.0,
+    "living_area_sqm": 88.0,
+    "postal_code": "30161",
+    "city": "Hannover",
+    "street": "Podbielskistraße",
+    "house_number": "25",
+    "rooms": 3.0,
+    "floor": 3,
+    "total_floors": 4,
+    "year_built": 1925,
+    "condition": "needs_renovation",
+    "district": "List",
+    "energy_class": "H",
+    "heating_type": "solar",
+    "energy_demand_kwh": 265.0,
+    "cellar": true,
+    "parking": true,
+    "balcony": false
+  }
+}

@@ -9,6 +9,7 @@ import pytest
 from propintelli.config import Settings
 from propintelli.errors import DocumentReadError, EmptyDocumentError, OcrUnavailableError
 from propintelli.preprocessing import DocumentClass, TextSource, classify, extract_text
+from propintelli.preprocessing.text_extractor import tesseract_available
 
 
 @pytest.mark.parametrize(
@@ -60,3 +61,37 @@ def test_extract_text_blank_with_unavailable_ocr_raises_ocr_unavailable(
     with pytest.raises(OcrUnavailableError) as exc_info:
         extract_text(blank_pdf, document_id="doc-scan", settings=settings)
     assert exc_info.value.as_processing_error().error_code == "OCR_001"
+
+
+def test_image_only_pdf_without_ocr_raises_empty(scanned_pdf: Path) -> None:
+    # An image-only page has no text layer; with OCR off it yields no usable text.
+    with pytest.raises(EmptyDocumentError):
+        extract_text(scanned_pdf, document_id="doc-img", settings=Settings(ocr_enabled=False))
+
+
+def test_image_only_pdf_recovers_text_via_ocr_when_available(
+    scanned_pdf: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Drive the OCR-success branch deterministically: pretend Tesseract is present
+    # and stub the page OCR, then assert the orchestration marks the source as OCR.
+    monkeypatch.setattr(
+        "propintelli.preprocessing.text_extractor.tesseract_available", lambda: True
+    )
+    monkeypatch.setattr(
+        "propintelli.preprocessing.text_extractor._ocr_page",
+        lambda page, language: "Kaufpreis 425000 EUR Wohnflaeche 88 m2",
+    )
+    result = extract_text(scanned_pdf, document_id="doc-img", settings=Settings(ocr_enabled=True))
+    assert result.document_class is DocumentClass.SCANNED
+    assert result.text_source is TextSource.OCR
+    assert "Kaufpreis" in result.text
+
+
+@pytest.mark.skipif(not tesseract_available(), reason="Tesseract OCR backend not installed")
+def test_image_only_pdf_real_ocr(scanned_pdf: Path) -> None:  # pragma: no cover - env-dependent
+    # When a real Tesseract is available (e.g. in CI with the OCR extra), the
+    # scanned page is genuinely recovered end to end.
+    result = extract_text(scanned_pdf, document_id="doc-img", settings=Settings(ocr_enabled=True))
+    assert result.text_source is TextSource.OCR
+    assert result.char_count > 0

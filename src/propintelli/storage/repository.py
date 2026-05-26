@@ -191,6 +191,21 @@ class SilverRepository:
         with self._session_factory() as session:
             return len(list(session.scalars(select(Property.property_id))))
 
+    def processed_document_ids(self) -> set[str]:
+        """Return the ids of documents that already have a processing-run audit.
+
+        Includes both succeeded and failed runs, so a document is attempted at
+        most once by the Bronze watcher and a permanently-unreadable file is not
+        retried on every poll.
+
+        Returns
+        -------
+        set of str
+            Document ids recorded in the processing-run audit log.
+        """
+        with self._session_factory() as session:
+            return set(session.scalars(select(ProcessingRun.document_id)))
+
 
 def _to_orm(record: PropertyRecord) -> Property:
     """Map a :class:`PropertyRecord` onto the ORM graph."""

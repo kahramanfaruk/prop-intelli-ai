@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import json
+import shutil
 from pathlib import Path
+
+import pytest
 
 from propintelli.config import Settings
 from propintelli.ingestion import DocumentStore
@@ -61,3 +65,51 @@ def test_pipeline_without_repository_does_not_persist(tmp_path: Path, sample_pdf
     pipeline, _ = _pipeline(tmp_path, with_repo=False)
     result = pipeline.process_path(sample_pdf)
     assert result.succeeded
+
+
+def _ingest_like_external_api(bronze_root: Path, document_id: str, source_pdf: Path) -> None:
+    """Write a document into the Bronze store the way the C# API does.
+
+    Uses a camelCase manifest to confirm the worker reads producer-agnostic
+    manifests, and stores the file in place under a server-assigned id.
+    """
+    directory = bronze_root / document_id
+    directory.mkdir(parents=True)
+    shutil.copy(source_pdf, directory / "original.pdf")
+    (directory / "manifest.json").write_text(
+        json.dumps({"documentId": document_id, "sourceDocument": "api-upload.pdf"}),
+        encoding="utf-8",
+    )
+
+
+def test_process_pending_extracts_externally_ingested_documents(
+    tmp_path: Path, sample_pdf: Path
+) -> None:
+    pipeline, repo = _pipeline(tmp_path)
+    assert repo is not None
+    _ingest_like_external_api(tmp_path / "bronze", "ext-123", sample_pdf)
+
+    processed = pipeline.process_pending()
+
+    assert len(processed) == 1
+    result = processed[0]
+    assert result.succeeded
+    # The Bronze id is preserved (the document is processed in place, not re-ingested),
+    # and the original filename is recovered from the camelCase manifest.
+    assert result.document_id == "ext-123"
+    assert result.source_document == "api-upload.pdf"
+    assert repo.get_record("ext-123") is not None
+
+
+def test_process_pending_is_idempotent(tmp_path: Path, sample_pdf: Path) -> None:
+    pipeline, _ = _pipeline(tmp_path)
+    _ingest_like_external_api(tmp_path / "bronze", "ext-1", sample_pdf)
+    assert len(pipeline.process_pending()) == 1
+    # A second pass finds nothing new — already-audited documents are skipped.
+    assert pipeline.process_pending() == []
+
+
+def test_process_pending_requires_repository(tmp_path: Path) -> None:
+    pipeline, _ = _pipeline(tmp_path, with_repo=False)
+    with pytest.raises(ValueError, match="repository"):
+        pipeline.process_pending()

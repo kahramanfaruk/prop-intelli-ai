@@ -1,6 +1,7 @@
 using System.Text.Json;
 using IngestionApi.Endpoints;
 using IngestionApi.Services;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+});
+
+// Cap multipart uploads at the framework level so an oversized body is rejected
+// before it is buffered; the endpoint additionally returns a clear 413.
+var maxUploadBytes = builder.Configuration.GetValue<long?>("Upload:MaxBytes") ?? 26_214_400L;
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maxUploadBytes;
 });
 
 builder.Services.AddSingleton<FileDocumentStore>();

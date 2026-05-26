@@ -9,6 +9,7 @@ review. Fields produced by only one layer pass through unchanged.
 
 from __future__ import annotations
 
+from propintelli.comparison import numeric_match, text_match
 from propintelli.schemas.enums import Provenance
 from propintelli.schemas.extraction import FieldValue
 from propintelli.schemas.fields import PROPERTY_FIELDS, FieldKind
@@ -16,7 +17,6 @@ from propintelli.transformation.parsing import parse_bool, parse_number
 
 _AGREEMENT_BOOST = 0.1
 _DISAGREEMENT_PENALTY = 0.6
-_NUMERIC_REL_TOLERANCE = 0.01
 
 
 def _is_present(value: FieldValue | None) -> bool:
@@ -38,24 +38,18 @@ def _values_agree(field_name: str, left: FieldValue, right: FieldValue) -> bool:
     """
     spec = PROPERTY_FIELDS.get(field_name)
     if spec is None:
-        return (left.raw_value or "").strip().casefold() == (
-            right.raw_value or ""
-        ).strip().casefold()
+        return text_match(left.raw_value, right.raw_value)
 
     if spec.is_numeric:
         left_value, right_value = _numeric(left), _numeric(right)
         if left_value is None or right_value is None:
             return False
-        if spec.kind is FieldKind.INTEGER:
-            # Counts and years must match exactly; a year off by one is wrong.
-            return round(left_value) == round(right_value)
-        tolerance = _NUMERIC_REL_TOLERANCE * max(abs(left_value), abs(right_value), 1.0)
-        return abs(left_value - right_value) <= tolerance
+        return numeric_match(left_value, right_value, integer=spec.kind is FieldKind.INTEGER)
 
     if spec.kind is FieldKind.BOOLEAN:
         return parse_bool(left.raw_value) == parse_bool(right.raw_value)
 
-    return (left.raw_value or "").strip().casefold() == (right.raw_value or "").strip().casefold()
+    return text_match(left.raw_value, right.raw_value)
 
 
 def reconcile(

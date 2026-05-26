@@ -83,6 +83,18 @@ def test_document_store_rejects_empty(tmp_path: Path) -> None:
         store.ingest_bytes(b"", "empty.pdf")
 
 
+def test_document_store_iterates_resident_documents(tmp_path: Path, sample_pdf: Path) -> None:
+    store = DocumentStore(tmp_path / "bronze")
+    ingested = store.ingest_path(sample_pdf)
+    # A stray non-document directory must be ignored by the enumerator.
+    (tmp_path / "bronze" / "not-a-doc").mkdir()
+
+    entries = list(store.iter_documents())
+    assert [entry.document_id for entry in entries] == [ingested.document_id]
+    assert entries[0].stored_path.exists()
+    assert entries[0].source_document == sample_pdf.name
+
+
 # --- Silver ----------------------------------------------------------------
 def test_silver_round_trip_preserves_record(tmp_path: Path) -> None:
     repo = SilverRepository(tmp_path / "silver.sqlite")

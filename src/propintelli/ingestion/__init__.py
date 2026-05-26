@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from propintelli.ingestion.document_store import BronzeDocument, DocumentStore
+from propintelli.ingestion.document_store import BronzeDocument, BronzeEntry, DocumentStore
 
-__all__ = ["BronzeDocument", "DocumentStore"]
+__all__ = ["BronzeDocument", "BronzeEntry", "DocumentStore"]

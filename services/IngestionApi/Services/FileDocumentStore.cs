@@ -12,6 +12,8 @@ namespace IngestionApi.Services;
 public sealed class FileDocumentStore
 {
     private const string ManifestName = "manifest.json";
+    // The PDF file signature ("%PDF-"); uploads must start with it.
+    private static readonly byte[] PdfSignature = "%PDF-"u8.ToArray();
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
@@ -41,6 +43,12 @@ public sealed class FileDocumentStore
         if (bytes.Length == 0)
         {
             throw new ArgumentException("Refusing to ingest an empty document.", nameof(content));
+        }
+
+        if (!HasPdfSignature(bytes))
+        {
+            throw new ArgumentException(
+                "Only PDF documents are accepted (missing %PDF- signature).", nameof(content));
         }
 
         var documentId = Guid.NewGuid().ToString("N");
@@ -85,4 +93,7 @@ public sealed class FileDocumentStore
         return await JsonSerializer.DeserializeAsync<BronzeDocument>(
             stream, JsonOptions, cancellationToken);
     }
+
+    private static bool HasPdfSignature(ReadOnlySpan<byte> bytes) =>
+        bytes.Length >= PdfSignature.Length && bytes[..PdfSignature.Length].SequenceEqual(PdfSignature);
 }

@@ -9,6 +9,7 @@ from propintelli.batch import run_batch
 from propintelli.config import Settings
 from propintelli.ingestion import DocumentStore
 from propintelli.pipeline import Pipeline
+from propintelli.sampledata import SAMPLE_PROPERTIES
 from propintelli.schemas.enums import ReviewStatus
 from propintelli.storage import SilverRepository
 
@@ -25,9 +26,9 @@ def test_batch_processes_full_corpus(tmp_path: Path, sample_corpus: tuple[Path, 
     raw_dir, _ = sample_corpus
     report = run_batch(raw_dir, _pipeline(tmp_path), show_progress=False)
 
-    assert report.total == 10
+    assert report.total == len(SAMPLE_PROPERTIES)
     assert report.failed == 0
-    assert report.succeeded == 10
+    assert report.succeeded == len(SAMPLE_PROPERTIES)
     assert report.by_status[ReviewStatus.AUTO_APPROVED.value] >= 1
 
 

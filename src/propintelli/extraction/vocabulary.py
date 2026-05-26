@@ -20,7 +20,7 @@ HEATING_PATTERNS: tuple[tuple[str, HeatingType], ...] = (
     (r"fu[ßs]bodenheizung", HeatingType.UNDERFLOOR),
     (r"pellet", HeatingType.PELLET),
     (r"solarthermie|solaranlage|solar", HeatingType.SOLAR),
-    (r"gasheizung|gas-?zentralheizung|erdgas|\bgas\b", HeatingType.GAS),
+    (r"gas-?(?:heizung|zentralheizung|etagenheizung|therme)|erdgas|\bgas\b", HeatingType.GAS),
     (r"[öo]lheizung|\b[öo]l\b", HeatingType.OIL),
     (r"elektroheizung|nachtspeicher|\belektro\b", HeatingType.ELECTRIC),
 )
@@ -65,6 +65,19 @@ PRICE_LABEL_PATTERNS: tuple[tuple[str, PriceKind], ...] = (
     (r"monatsmiete|\bmiete\b", PriceKind.COLD_RENT),
     (r"\bpreis\b", PriceKind.PURCHASE),
 )
+
+# Labels for monetary amounts that are *not* the headline price. Real exposés
+# list ancillary costs (service charge, utilities, broker fee, deposit) next to
+# the price; an amount governed by one of these labels must never be mistaken
+# for the price itself.
+NON_PRICE_LABEL_PATTERN = (
+    r"hausgeld|wohngeld|nebenkosten|betriebskosten|heizkosten|"
+    r"provision|courtage|makler\w*|kaution|genossenschaftsanteil"
+)
+
+# Negation cues that flip a feature mention into an explicit absence
+# ("kein Balkon", "ohne Keller"). Matched as whole words, case-insensitively.
+NEGATION_PATTERN = r"\b(?:kein(?:e[mnrs]?)?|ohne|nicht|nein)\b"
 
 # Recognised German street-name suffixes used to locate an address line.
 STREET_SUFFIXES: tuple[str, ...] = (

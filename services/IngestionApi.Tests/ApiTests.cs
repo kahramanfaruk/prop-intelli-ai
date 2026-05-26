@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -74,5 +75,37 @@ public class ApiTests : IClassFixture<WebApplicationFactory<Program>>
 
         var missing = await _client.GetAsync("/api/documents/does-not-exist/status");
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadRejectsNonPdfPayload()
+    {
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(Encoding.UTF8.GetBytes("GIF89a not a pdf at all"));
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "fake.pdf");
+
+        var response = await _client.PostAsync("/api/documents/upload", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Contains("PDF", document.RootElement.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task UploadRejectsOversizedPayload()
+    {
+        // A factory with a tiny upload limit makes the 413 path testable cheaply.
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.UseSetting("Upload:MaxBytes", "16"));
+        using var client = factory.CreateClient();
+
+        using var content = new MultipartFormDataContent();
+        var fileBytes = Encoding.UTF8.GetBytes("%PDF-1.4 this body is longer than sixteen bytes");
+        content.Add(new ByteArrayContent(fileBytes), "file", "big.pdf");
+
+        var response = await client.PostAsync("/api/documents/upload", content);
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
     }
 }

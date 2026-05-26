@@ -67,3 +67,27 @@ def corrupt_pdf(tmp_path: Path) -> Path:
     path = tmp_path / "corrupt.pdf"
     path.write_bytes(b"%PDF-1.4 this is not a real pdf body")
     return path
+
+
+@pytest.fixture
+def scanned_pdf(tmp_path: Path) -> Path:
+    """Create an image-only PDF (rendered text, no text layer) simulating a scan.
+
+    The page text is rasterised into an image and re-embedded, so direct text
+    extraction yields nothing (the page classifies as ``SCANNED``) while a real
+    OCR backend could still recover the rendered words.
+    """
+    source = fitz.open()
+    page = source.new_page()
+    page.insert_text((72, 96), "Kaufpreis 425000 EUR", fontsize=18)
+    page.insert_text((72, 132), "Wohnflaeche 88 m2", fontsize=18)
+    pixmap = page.get_pixmap(dpi=150)
+
+    path = tmp_path / "scanned.pdf"
+    image_only = fitz.open()
+    image_page = image_only.new_page(width=pixmap.width, height=pixmap.height)
+    image_page.insert_image(image_page.rect, pixmap=pixmap)
+    image_only.save(str(path))
+    image_only.close()
+    source.close()
+    return path
