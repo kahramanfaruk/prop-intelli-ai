@@ -26,7 +26,7 @@ Baujahr** (and more) from PDF exposés.
   app to correct flagged fields and feed corrections back.
 - **Two-corpus evaluation** — a synthetic corpus measures **consistency** (0.996
   macro-F1) and an independently-authored **holdout** measures **generalization**
-  (0.902 macro-F1); all metrics carry **95% Wilson confidence intervals**, and
+  (0.896 macro-F1); all metrics carry **95% Wilson confidence intervals**, and
   per-field confidence is **calibrated and measured** (Brier 0.038), not asserted.
 - **Data quality** — mandatory/range/plausibility rules (incl. €/m² by listing type).
 - **Meaningful errors** — structured `ProcessingError` with developer + user messages;
@@ -119,7 +119,7 @@ baseline, fully offline:
 | Corpus | What it measures | Field accuracy | Macro F1 | Exact-match |
 | --- | --- | --- | --- | --- |
 | **Synthetic** (13 docs) | round-trip **consistency** | **100.0%** (CI 98.7–100%) | **0.996** | **100.0%** |
-| **Holdout** (3 docs, authored) | **generalization** to unseen wording | **92.1%** (CI 82.7–96.6%) | **0.902** | **33.3%** |
+| **Holdout** (3 docs, authored) | **generalization** to unseen wording | **90.6%** (CI 81.0–95.6%) | **0.896** | **33.3%** |
 
 The synthetic corpus is generated from the same vocabulary the extractor uses, so
 its near-perfect score measures *consistency*, not real-world accuracy. The
@@ -129,6 +129,14 @@ the honest generalization signal. Per-field confidence is **measured to be
 calibrated** (Brier 0.038 on the holdout), not assumed. The remaining honest
 misses (post-posed negation, bare "Klasse E", "Lage:"-style districts) are
 catalogued in the evaluation doc as the cases the optional LLM layer targets.
+
+Enabling the LLM layer (Ollama, llama3.1 8B, `temperature=0`) on the holdout is a
+measured **recall/precision trade-off**, not a free win: the schema-anchored prompt
+lifts field accuracy to **95.3%** by recovering missed fields (post-posed negation,
+bare "Klasse E", the hyphenated district), but also hallucinates some fields, which
+lowers macro-F1 (0.888) and calibration (Brier 0.093). This is exactly why the
+deterministic baseline, reconciliation, and human-in-the-loop review exist. See
+[`docs/prompt_engineering.md`](docs/prompt_engineering.md).
 
 ## Project structure
 
@@ -153,7 +161,7 @@ docs/                 # use case (EN+DE), architecture, data model, prompts, err
 | [`docs/use_case_DE.md`](docs/use_case_DE.md) | German executive one-pager. |
 | [`docs/architecture.md`](docs/architecture.md) | Diagrams, decisions/trade-offs, variance handling, Azure mapping. |
 | [`docs/data_model.md`](docs/data_model.md) | Schema design and rationale. |
-| [`docs/prompt_engineering.md`](docs/prompt_engineering.md) | Three prompt variants + comparison methodology. |
+| [`docs/prompt_engineering.md`](docs/prompt_engineering.md) | Three prompt variants + measured comparison (Ollama llama3.1). |
 | [`docs/error_catalog.md`](docs/error_catalog.md) | Error codes, user/developer messages, retry strategy. |
 | [`docs/evaluation.md`](docs/evaluation.md) | Metrics methodology + measured results. |
 | [`services/IngestionApi/README.md`](services/IngestionApi/README.md) | The C# microservice. |
@@ -167,23 +175,24 @@ Actions · uv · ruff · mypy · pytest.
 
 ## What was verified, and where
 
-This was built and verified on a machine **without** Docker, .NET, Ollama, or
-Tesseract, so the honesty contract is explicit:
+The honesty contract is explicit about what was measured versus reasoned:
 
-- **Verified locally**: the entire Python pipeline — `ruff` (format + lint),
-  `mypy --strict`, `pytest` (118 tests, ~90% coverage), and real end-to-end runs
+- **Verified locally (Python)**: the entire pipeline — `ruff` (format + lint),
+  `mypy --strict`, `pytest` (121 tests, ~90% coverage), and real end-to-end runs
   on the deterministic backend over **both** the synthetic and the holdout corpora
   (`generate-samples`/`generate-holdout → batch → evaluate`). The OCR decision
-  logic (classification, fallback, and the OCR-success path) is verified with an
-  image-only PDF and a stubbed backend; the prompt-comparison harness is verified
-  with a stub provider.
+  logic (classification, fallback, OCR-success path) is verified with an image-only
+  PDF and a stubbed backend; the prompt-comparison harness is also verified with a
+  stub provider.
+- **Verified locally (real LLM)**: the prompt-variant comparison was run against a
+  real local **Ollama** backend (llama3.1 8B, Q4_K_M, `temperature=0`) on the
+  holdout — the numbers in [`docs/prompt_engineering.md`](docs/prompt_engineering.md)
+  and [`docs/evaluation.md`](docs/evaluation.md) are **measured, not fabricated**.
 - **Verified in CI** (GitHub Actions hosted runners): the C# service is built and
   tested (`dotnet test`, including PDF-signature and size-limit rejection), and all
   three Docker images are built.
-- **Documented, run on your machine**: real LLM backends (Ollama/OpenAI/Azure) and
-  a real Tesseract OCR run activate when configured; the prompt-comparison numbers
-  and `compare-prompts` table must be produced with a backend (Ollama is free) —
-  they are **not fabricated** here. Exact commands are in the docs.
+- **Not run here**: Docker, .NET, and Tesseract are not installed on this machine,
+  so those paths are exercised in CI / documented to run; commands are in the docs.
 
 ## License
 

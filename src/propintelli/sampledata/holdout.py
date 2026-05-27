@@ -90,6 +90,7 @@ HOLDOUT_DOCUMENTS: list[HoldoutDocument] = [
             "house_number": "30",
             "postal_code": "76227",
             "city": "Karlsruhe",
+            "district": "Durlach",
             "energy_class": "E",
             "heating_type": "gas",
             "energy_demand_kwh": 142.0,

@@ -60,6 +60,10 @@ class OllamaProvider:
             ],
             "format": "json",
             "stream": False,
+            # Greedy decoding: extraction seeks the single most-probable reading,
+            # not sampled variety. Temperature 0 makes the output reproducible
+            # (so the evaluation/comparison is stable) and matches the OpenAI path.
+            "options": {"temperature": 0},
         }
         try:
             response = httpx.post(

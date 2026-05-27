@@ -66,8 +66,8 @@ around. All proportions carry 95% Wilson confidence intervals (small samples).
 
 | Metric | Definition | Target | Synthetic (consistency) | Holdout (generalization) |
 | --- | --- | --- | --- | --- |
-| **Field accuracy** | Correct values among expected fields | ≥ 90% | **100%** (CI 98.7–100) | **92.1%** (CI 82.7–96.6) |
-| **Macro F1** | Mean per-field F1 (rewards correct absence) | ≥ 0.90 | **0.996** | **0.902** |
+| **Field accuracy** | Correct values among expected fields | ≥ 90% | **100%** (CI 98.7–100) | **90.6%** (CI 81.0–95.6) |
+| **Macro F1** | Mean per-field F1 (rewards correct absence) | ≥ 0.90 | **0.996** | **0.896** |
 | **Exact-match ratio** | Documents with every expected field correct | ≥ 0.70 | **1.00** | **0.33** |
 | **Confidence calibration** | Brier score (confidence vs. correctness) | well-calibrated | 0.030 | **0.038** |
 | **Auto-approval rate** | Share routed without human review | maximise safely | tunable via thresholds | — |

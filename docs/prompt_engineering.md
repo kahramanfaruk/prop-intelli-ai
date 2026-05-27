@@ -35,10 +35,12 @@ Extends v2 with an instruction to **internally verify** each value against the
 text before answering, and to return a parallel `"confidences"` object with a
 0–1 score per field.
 
-- **Pros**: highest robustness on noisy/unusual layouts; the per-field confidence
-  feeds the platform's confidence model directly (instead of a flat default).
-- **Cons**: most tokens/latency; confidence is self-reported and must still be
-  cross-checked by reconciliation and validation.
+- **Intended benefit**: self-verification on hard layouts, plus a per-field
+  confidence that feeds the platform's confidence model directly.
+- **Cons**: most tokens/latency; the confidence is **self-reported**. Measured on
+  an 8B local model this backfired — its high self-confidence let wrong values win
+  in reconciliation, making it the worst variant on the holdout (see Results). The
+  premise may hold on a larger/hosted model; on a small one it does not.
 
 ## Why a single envelope
 
@@ -65,31 +67,40 @@ comparison machinery (`compare_prompt_variants`) is verified end-to-end in CI wi
 a deterministic **stub provider**, so the harness itself is known-good; the
 command refuses to run with the `none` backend (the variants would be identical).
 
-### Results
+### Results (measured)
 
-The clean synthetic corpus already sits at the deterministic ceiling, so the
-variants are best compared on the **holdout** corpus, where the baseline leaves
-real gaps (post-posed negation, bare "Klasse E", `Lage:`-style districts).
+The clean synthetic corpus sits at the deterministic ceiling, so the variants are
+compared on the **holdout** corpus, where the baseline leaves real gaps. Measured
+with **Ollama, llama3.1 (8B, Q4_K_M), `temperature=0`** (each LLM row is the hybrid
+deterministic + variant result via `compare-prompts`):
 
-> The machine used to build this project had **no LLM backend** (no Ollama, no
-> network), so the model rows below are intentionally left for you to fill — the
-> numbers are **not fabricated**. Run the command above with a free local Ollama
-> model to populate them; the deterministic rows are measured.
+| Variant | Macro F1 | Field accuracy | Exact-match | Brier | Finding |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Deterministic (no LLM) — synthetic | 0.996 | 100.0 % | 100.0 % | 0.030 | Consistency ceiling (13 docs). |
+| Deterministic (no LLM) — holdout | 0.896 | 90.6 % | 33.3 % | 0.038 | Generalization baseline (3 docs). |
+| + v1_direct — holdout | 0.896 | 90.6 % | 33.3 % | 0.034 | No net effect — low-confidence outputs lose in reconciliation. |
+| + v2_schema — holdout | 0.888 | **95.3 %** | 33.3 % | 0.093 | **Recovers** missed fields (accuracy↑) but **hallucinates** (macro-F1/Brier↓). |
+| + v3_reasoning — holdout | 0.856 | 87.5 % | 0.0 % | 0.089 | **Worst** — high self-confidence overrides correct regex values. |
 
-| Variant | Macro F1 | Field accuracy | Exact-match | Notes |
-| --- | --- | --- | --- | --- |
-| Deterministic baseline (no LLM) — synthetic | **0.996** | **1.000** | **1.000** | Measured (13-doc corpus). |
-| Deterministic baseline (no LLM) — holdout | **0.902** | **0.921** | **0.333** | Measured (3-doc authored holdout). |
-| v1_direct (holdout) | _run to fill_ | _run to fill_ | _run to fill_ | Expect lower precision (field-name drift). |
-| v2_schema (holdout) | _run to fill_ | _run to fill_ | _run to fill_ | Expect strong typing/naming. |
-| v3_reasoning (holdout) | _run to fill_ | _run to fill_ | _run to fill_ | Expect best recall on hard wording. |
+The measured ranking **contradicts the naive expectation** that more reasoning is
+better: on an 8B local model, v2 (schema-anchored) is the only net-useful variant,
+and v3 (reasoning + self-reported confidence) *degrades* below the deterministic
+baseline because reconciliation lets its over-confident wrong values win. With
+**n = 3** the point differences are within noise; the durable conclusions are
+qualitative (see [`evaluation.md`](evaluation.md#llm-prompt-variant-comparison-measured)).
 
 ## Practical guidance
 
 - On the clean synthetic corpus the **deterministic baseline already scores at the
-  ceiling**, so the LLM's value shows on **real, messy** exposés (free-text
-  descriptions, unusual labels) and on the one honest false positive in the
-  baseline ("Garten" matched from the park name *Englischer Garten*), which the
-  reasoning variant + reconciliation resolve.
-- Default to **v2** for production (quality/cost); reserve **v3** for documents the
-  baseline flags for review (a cost-aware escalation strategy).
+  ceiling**, so the LLM's value shows only on **real, messy** wording — exactly
+  what the holdout measures.
+- **Default to v2** for production: it is the only variant measured to *recover*
+  fields without overriding correct deterministic values, because its flat 0.70
+  confidence stays below the regex confidences in reconciliation.
+- **Do not trust a small model's self-reported confidence (v3).** On the 8B model
+  it overrode correct values and was the worst configuration. If v3's per-field
+  confidence is to be used, gate or down-weight it in reconciliation, or reserve
+  v3 for a larger/hosted model where its self-verification is more reliable.
+- Accept the trade-off explicitly: the LLM raises recall but can hallucinate, so
+  it belongs **behind** reconciliation and human-in-the-loop review, not in front
+  of them.

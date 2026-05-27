@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+import httpx
 import pytest
 
 from propintelli.config import LlmProvider, PromptVariant, Settings
 from propintelli.errors import LlmError
 from propintelli.extraction.llm.base import build_provider, parse_extraction
 from propintelli.extraction.llm.none_provider import NoneProvider
+from propintelli.extraction.llm.ollama_provider import OllamaProvider
 from propintelli.extraction.llm.prompts import build_messages
 
 
@@ -57,3 +61,47 @@ def test_build_provider_selects_none_by_default() -> None:
 def test_build_provider_openai_without_key_raises() -> None:
     with pytest.raises(LlmError):
         build_provider(Settings(llm_provider=LlmProvider.OPENAI, openai_api_key=None))
+
+
+class _FakeResponse:
+    """Minimal stand-in for an ``httpx.Response`` returning a fixed chat reply."""
+
+    def __init__(self, content: str) -> None:
+        self._content = content
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict[str, Any]:
+        return {"message": {"content": self._content}}
+
+
+def test_ollama_provider_requests_deterministic_json(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def _fake_post(url: str, *, json: dict[str, Any], timeout: float) -> _FakeResponse:
+        captured["url"] = url
+        captured["payload"] = json
+        return _FakeResponse('{"fields": {"city": "Berlin"}}')
+
+    monkeypatch.setattr("propintelli.extraction.llm.ollama_provider.httpx.post", _fake_post)
+    provider = OllamaProvider(Settings(llm_provider=LlmProvider.OLLAMA))
+    result = provider.extract("Adresse: Hauptstraße 1, 10115 Berlin")
+
+    assert result.fields == {"city": "Berlin"}
+    assert captured["url"].endswith("/api/chat")
+    assert captured["payload"]["format"] == "json"
+    assert captured["payload"]["stream"] is False
+    # Determinism is required for a reproducible evaluation/comparison.
+    assert captured["payload"]["options"]["temperature"] == 0
+
+
+def test_ollama_provider_maps_transport_failure_to_llmerror(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _boom(*_args: Any, **_kwargs: Any) -> _FakeResponse:
+        raise httpx.ConnectError("connection refused")
+
+    monkeypatch.setattr("propintelli.extraction.llm.ollama_provider.httpx.post", _boom)
+    with pytest.raises(LlmError):
+        OllamaProvider(Settings(llm_provider=LlmProvider.OLLAMA)).extract("any text")

@@ -82,8 +82,8 @@ Measured on the 3-document authored holdout:
 | Metric | Value |
 | --- | --- |
 | Documents | 3 |
-| **Field accuracy (micro)** | **92.1 %** (95 % CI 82.7–96.6 %) |
-| **Macro F1** | **0.902** |
+| **Field accuracy (micro)** | **90.6 %** (95 % CI 81.0–95.6 %) |
+| **Macro F1** | **0.896** |
 | **Exact-match ratio** | **33.3 %** |
 
 The score is **lower than the synthetic ceiling, and that is the point** — it is
@@ -94,7 +94,7 @@ real, explainable limitations of a pure-regex baseline:
 | --- | --- | --- | --- |
 | `elevator` | "einen Aufzug gibt es **nicht**" read as present | negation is *post-posed* (after the noun); the detector scopes pre-posed cues | LLM layer / clause parsing |
 | `total_floors` | "2. OG (von 4)" → floor captured, total not | the "(von N)" form is not in the floor pattern | targeted pattern (future) |
-| `district` | "Lage: Wiehre" not captured | district is recognised in parentheses or after "Stadtteil", not after "Lage:" | LLM layer |
+| `district` | "Karlsruhe-**Durlach**" / "Lage: Wiehre" not captured | district is recognised in parentheses or after "Stadtteil", not in a hyphenated city or after "Lage:" | LLM layer |
 | `energy_demand_kwh` | "68 kWh" without an "Energiebedarf" label | the demand pattern requires the German label prefix | LLM layer |
 | `energy_class` | bare "Klasse E" (no "Energie…klasse") | left strict on purpose to avoid false positives on stray "Klasse" | LLM layer |
 
@@ -131,25 +131,58 @@ synthetic corpus the Brier is 0.030 (n = 283), but with almost no errors there i
 mainly reflects how far the priors sit below 1.0, so the holdout figure is the one
 to trust.
 
-## LLM prompt-variant comparison
+## LLM prompt-variant comparison — measured
 
-The three prompt variants are compared with the **same harness**, holding the
-provider fixed and changing only the prompt:
+Backend: **Ollama, llama3.1 (8B, Q4_K_M), `temperature=0`** (Ollama 0.24.0), on the
+3-document holdout — the synthetic corpus is at the deterministic ceiling, so it
+cannot show the LLM's effect. Each row is the *hybrid* result (deterministic
+Layer A reconciled with that prompt variant), produced with the same harness via
+`uv run propintelli compare-prompts`:
 
+| Configuration | Macro F1 | Field accuracy | Exact-match | Brier |
+| --- | ---: | ---: | ---: | ---: |
+| Deterministic only (no LLM) | 0.896 | 90.6 % | 33.3 % | 0.038 |
+| + v1_direct | 0.896 | 90.6 % | 33.3 % | 0.034 |
+| + v2_schema | 0.888 | **95.3 %** | 33.3 % | 0.093 |
+| + v3_reasoning | 0.856 | 87.5 % | 0.0 % | 0.089 |
+
+This is **not** the naive "more prompting is better" story:
+
+- **v1 (terse)** makes no net difference: its outputs carry a low default
+  confidence (0.55), so reconciliation keeps the higher-confidence regex values —
+  it neither adds nor breaks anything.
+- **v2 (schema-anchored)** is the useful one — it lifts field accuracy 90.6 → 95.3 %
+  by recovering fields the regex misses (verified on the holdout: the post-posed
+  "einen Aufzug gibt es nicht" → elevator absent, bare "Klasse E", and the
+  hyphenated district "Durlach"). But it also hallucinates some fields, lowering
+  macro-F1 (0.888) and calibration (Brier 0.093). It is a **recall-for-precision
+  trade**, not a free win.
+- **v3 (reasoning + self-confidence)** is the worst here — below the deterministic
+  baseline on every metric, and it turns the one fully-correct document into an
+  error (exact-match 33 % → 0 %). The mechanism follows from reconciliation:
+  v2's flat 0.70 confidence rarely overrides the regex (it only *adds* fields),
+  whereas v3's *self-reported* confidences are high, so when the 8B model is
+  confidently wrong it *overrides* a correct deterministic value. The concrete
+  lesson: **do not trust a small model's self-reported confidence** — the
+  conservative flat default is safer.
+
+Caveat — with **n = 3** these point differences are within noise (per-field Wilson
+intervals are wide); the robust conclusions are *qualitative*: the recall/precision
+trade-off is real, heavier prompting does not help an 8B local model, and the
+deterministic baseline + reconciliation + HITL are what keep the LLM's failure
+modes contained. A larger or hosted model may rank differently — re-run
+`compare-prompts` on your backend to measure it.
+
+Reproduce:
 ```bash
-export PROPINTELLI_LLM_PROVIDER=ollama       # or openai / azure_openai
+export PROPINTELLI_LLM_PROVIDER=ollama PROPINTELLI_LLM_TIMEOUT_SECONDS=600
 uv run propintelli compare-prompts \
   --raw-dir sample_data/holdout/raw --truth-dir sample_data/holdout/ground_truth
 ```
-
-This emits a Macro-F1 / accuracy / exact-match / Brier table per variant. The
-comparison machinery is verified end-to-end in CI with a deterministic stub
-provider; the **model numbers must be produced on a machine with a backend**
-(Ollama is free and local) and were not fabricated here. The clean synthetic
-corpus is at the deterministic ceiling, so the LLM's value is expected to show on
-the **holdout** and on the `garden`/`elevator`-style cases the baseline misses —
-run `compare-prompts` against the holdout to populate the table in
-[`prompt_engineering.md`](prompt_engineering.md).
+The harness is verified end-to-end in CI with a deterministic stub provider, so it
+is known-good independent of any backend. Local 8B inference is slow here
+(~130–500 s/document by prompt length), so v3 needs the raised timeout; the 60 s
+default suits hosted APIs.
 
 ## Reproducing & extending
 
