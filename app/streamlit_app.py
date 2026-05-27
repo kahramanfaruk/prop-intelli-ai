@@ -22,9 +22,11 @@ from propintelli.ingestion.document_store import DocumentStore
 from propintelli.logging_setup import configure_logging
 from propintelli.pipeline import Pipeline
 from propintelli.schemas.enums import Provenance, ReviewStatus
-from propintelli.schemas.fields import PROPERTY_FIELDS, FieldKind
+from propintelli.schemas.extraction import FieldValue
+from propintelli.schemas.fields import PROPERTY_FIELDS
 from propintelli.schemas.property_record import PropertyRecord
 from propintelli.storage.repository import SilverRepository
+from propintelli.transformation import normalize_value
 
 _STATUS_STYLE: dict[ReviewStatus, tuple[str, str]] = {
     ReviewStatus.AUTO_APPROVED: ("✅", "green"),
@@ -105,7 +107,11 @@ def _apply_edits(record: PropertyRecord, edits: dict[str, str]) -> PropertyRecor
 
     for name, raw in edits.items():
         spec = PROPERTY_FIELDS[name]
-        new_value = _coerce(spec.kind, raw)
+        # Reuse the pipeline's typed coercion so an edited date becomes a
+        # ``date``, an enum becomes its member, a price becomes ``Decimal`` and
+        # so on. ``model_copy(update=...)`` does not validate, so the value must
+        # already be the field's declared type before it reaches storage.
+        new_value = normalize_value(spec, FieldValue(raw_value=raw, provenance=Provenance.MANUAL))
         if new_value == flat.get(name):
             continue
         provenance[name] = Provenance.MANUAL
@@ -125,26 +131,6 @@ def _apply_edits(record: PropertyRecord, edits: dict[str, str]) -> PropertyRecor
             "quality": quality,
         }
     )
-
-
-def _coerce(kind: FieldKind, raw: str) -> Any:
-    """Best-effort coercion of an edited string into the field's type."""
-    text = raw.strip()
-    if not text:
-        return None
-    if kind is FieldKind.BOOLEAN:
-        return text.lower() in {"true", "ja", "yes", "1"}
-    if kind in {FieldKind.FLOAT, FieldKind.DECIMAL}:
-        try:
-            return float(text.replace(",", "."))
-        except ValueError:
-            return text
-    if kind is FieldKind.INTEGER:
-        try:
-            return int(float(text))
-        except ValueError:
-            return text
-    return text
 
 
 def main() -> None:
