@@ -2,14 +2,14 @@
 
 This module implements the platform's error philosophy: failures are *classification
 signals* that route a document to automatic processing, a fallback path, or a human
-review queue — never silent exceptions or bare strings.
+review queue, never silent exceptions or bare strings.
 
 Two layers cooperate:
 
-* :class:`ProcessingError` — a serialisable record carrying both a *developer*
+* :class:`ProcessingError`: a serialisable record carrying both a *developer*
   message (for logs) and a *user* message (for the API/UI). It is safe to return
   across a service boundary.
-* :class:`PropIntelliError` and its subclasses — the raised exceptions. Each
+* :class:`PropIntelliError` and its subclasses: the raised exceptions. Each
   subclass declares stable defaults (error code, stage, severity, recoverability,
   user message) and can be converted to a :class:`ProcessingError` for transport.
 

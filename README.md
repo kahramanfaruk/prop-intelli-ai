@@ -1,6 +1,6 @@
 # PropIntelli AI
 
-**Document Intelligence & Data Extraction Platform** — turns unstructured German
+**Document Intelligence & Data Extraction Platform**: turns unstructured German
 real-estate exposés (Immobilien-Exposés) into validated, structured property data.
 
 > This is not a PDF parser. It is a medallion-architecture document-intelligence
@@ -15,26 +15,26 @@ Baujahr** (and more) from PDF exposés.
 
 ## Highlights
 
-- **Hybrid extraction** — a layout-agnostic deterministic baseline (regex/heuristics,
+- **Hybrid extraction**: a layout-agnostic deterministic baseline (regex/heuristics,
   always on, offline) with German **negation handling** (tri-state booleans:
   present / explicitly-absent / not-stated) and ancillary-cost–aware price
   selection, plus an **optional, pluggable LLM layer** (`none` / Ollama / OpenAI /
   Azure OpenAI) reconciled per field with confidence scoring.
-- **Medallion architecture** — Bronze (raw + manifest) → Silver (validated records,
+- **Medallion architecture**: Bronze (raw + manifest) → Silver (validated records,
   SQLite/SQLAlchemy) → Gold (DuckDB + Parquet/CSV analytics).
-- **Confidence-driven HITL** — auto-approve / review / manual routing; a Streamlit
+- **Confidence-driven HITL**: auto-approve / review / manual routing; a Streamlit
   app to correct flagged fields and feed corrections back.
-- **Two-corpus evaluation** — a synthetic corpus measures **consistency** (0.996
+- **Two-corpus evaluation**: a synthetic corpus measures **consistency** (0.996
   macro-F1) and an independently-authored **holdout** measures **generalization**
   (0.896 macro-F1); all metrics carry **95% Wilson confidence intervals**, and
   per-field confidence is **calibrated and measured** (Brier 0.038), not asserted.
-- **Data quality** — mandatory/range/plausibility rules (incl. €/m² by listing type).
-- **Meaningful errors** — structured `ProcessingError` with developer + user messages;
+- **Data quality**: mandatory/range/plausibility rules (incl. €/m² by listing type).
+- **Meaningful errors**: structured `ProcessingError` with developer + user messages;
   failures are classification signals, never silent crashes.
-- **Enterprise extras** — C# .NET 8 ingestion/validation microservice (PDF-validated,
+- **Enterprise extras**: C# .NET 8 ingestion/validation microservice (PDF-validated,
   size-capped) wired to extraction via a Bronze watcher, Docker Compose, GitHub
   Actions CI, full Azure production mapping.
-- **Strict quality gates** — `ruff format` + lint, `mypy --strict`, NumPy docstrings,
+- **Strict quality gates**: `ruff format` + lint, `mypy --strict`, NumPy docstrings,
   pytest with an 80% coverage floor.
 
 ## Architecture at a glance
@@ -107,7 +107,7 @@ docker compose up --build   # C# API (:8080) + Streamlit UI (:8501) + Bronze wor
 ```
 
 The worker seeds the bundled samples, then **watches the shared Bronze store** and
-extracts anything the C# API ingests — so `POST /api/documents/upload` flows
+extracts anything the C# API ingests, so `POST /api/documents/upload` flows
 through to the Silver store without manual steps.
 
 ## Results
@@ -124,7 +124,7 @@ baseline, fully offline:
 The synthetic corpus is generated from the same vocabulary the extractor uses, so
 its near-perfect score measures *consistency*, not real-world accuracy. The
 **holdout** is written and labelled by hand with the messiness of real listings
-(abbreviations, free prose, several cost lines, negations) — its lower score is
+(abbreviations, free prose, several cost lines, negations): its lower score is
 the honest generalization signal. Per-field confidence is **measured to be
 calibrated** (Brier 0.038 on the holdout), not assumed. The remaining honest
 misses (post-posed negation, bare "Klasse E", "Lage:"-style districts) are
@@ -177,7 +177,7 @@ Actions · uv · ruff · mypy · pytest.
 
 The honesty contract is explicit about what was measured versus reasoned:
 
-- **Verified locally (Python)**: the entire pipeline — `ruff` (format + lint),
+- **Verified locally (Python)**: the entire pipeline: `ruff` (format + lint),
   `mypy --strict`, `pytest` (121 tests, ~90% coverage), and real end-to-end runs
   on the deterministic backend over **both** the synthetic and the holdout corpora
   (`generate-samples`/`generate-holdout → batch → evaluate`). The OCR decision
@@ -186,7 +186,7 @@ The honesty contract is explicit about what was measured versus reasoned:
   stub provider.
 - **Verified locally (real LLM)**: the prompt-variant comparison was run against a
   real local **Ollama** backend (llama3.1 8B, Q4_K_M, `temperature=0`) on the
-  holdout — the numbers in [`docs/prompt_engineering.md`](docs/prompt_engineering.md)
+  holdout: the numbers in [`docs/prompt_engineering.md`](docs/prompt_engineering.md)
   and [`docs/evaluation.md`](docs/evaluation.md) are **measured, not fabricated**.
 - **Verified in CI** (GitHub Actions hosted runners): the C# service is built and
   tested (`dotnet test`, including PDF-signature and size-limit rejection), and all
@@ -196,4 +196,4 @@ The honesty contract is explicit about what was measured versus reasoned:
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT, see [`LICENSE`](LICENSE).

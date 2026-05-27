@@ -5,9 +5,9 @@ is consumed by the deterministic extractor, the LLM prompt builder, the
 transformation/normalisation step, the validation rules, the completeness and
 confidence scoring, the record assembler, the evaluation harness, and the UI.
 
-Defining each field once — with its data kind, its location inside
+Defining each field once, with its data kind, its location inside
 :class:`~propintelli.schemas.property_record.PropertyRecord`, whether it is
-mandatory, and its associated enum — eliminates the drift that otherwise creeps
+mandatory, and its associated enum, eliminates the drift that otherwise creeps
 in when the same field list is hand-maintained in many modules.
 """
 

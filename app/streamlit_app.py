@@ -2,7 +2,7 @@
 
 Upload an exposé PDF, run the extraction pipeline, and review the structured
 result with uncertain fields highlighted. Reviewers can correct flagged values
-and persist the approved record to the Silver store, then download it as JSON —
+and persist the approved record to the Silver store, then download it as JSON,
 demonstrating the confidence-driven HITL loop end to end.
 
 Run with::
@@ -150,7 +150,7 @@ def _coerce(kind: FieldKind, raw: str) -> Any:
 def main() -> None:
     """Run the Streamlit application."""
     st.set_page_config(page_title="PropIntelli AI", page_icon="🏠", layout="wide")
-    st.title("🏠 PropIntelli AI — Exposé Extraction")
+    st.title("🏠 PropIntelli AI: Exposé Extraction")
     st.write(
         "Upload a German real-estate exposé (PDF). The pipeline extracts structured "
         "data, scores its confidence, and routes uncertain results to you for review."
@@ -164,7 +164,7 @@ def main() -> None:
 
     result = pipeline.process_bytes(upload.getvalue(), upload.name)
     if result.error is not None:
-        st.error(f"**{result.error.error_code}** — {result.error.user_message}")
+        st.error(f"**{result.error.error_code}**: {result.error.user_message}")
         return
 
     record = result.record

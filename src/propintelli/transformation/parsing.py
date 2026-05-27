@@ -1,6 +1,6 @@
 """Locale-aware primitive parsing.
 
-Deterministic extraction yields German-formatted numbers (``1.234,56`` — dot
+Deterministic extraction yields German-formatted numbers (``1.234,56``: dot
 thousands, comma decimal), while the LLM layer is instructed to emit
 dot-decimal numbers. Both conventions are handled here behind a single
 ``german`` flag, so the rest of the codebase never re-implements number parsing.

@@ -4,7 +4,7 @@
 failure is captured as a structured `ProcessingError` carrying both a **developer
 message** (for logs) and an **actionable user message** (for the API/UI), the
 stage, severity, and whether it is recoverable. The pipeline routes each document
-to automatic processing, a fallback path, or the human-in-the-loop queue — it
+to automatic processing, a fallback path, or the human-in-the-loop queue: it
 never crashes a batch.
 
 The model and exception hierarchy live in `src/propintelli/errors.py`.

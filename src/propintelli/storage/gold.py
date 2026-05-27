@@ -1,4 +1,4 @@
-"""Gold layer — analytics-ready exports built with DuckDB.
+"""Gold layer: analytics-ready exports built with DuckDB.
 
 The Gold layer flattens validated Silver records into a wide analytics table and
 a long features table, persists them as a DuckDB database plus Parquet and CSV

@@ -3,7 +3,7 @@
 The generator starts from canonical, normalised property records and *renders*
 them into realistic German exposé PDFs across three distinct layouts (tabular,
 prose, sectioned). Because generation is the inverse of extraction, each PDF is
-emitted together with a ground-truth JSON label holding the canonical values —
+emitted together with a ground-truth JSON label holding the canonical values,
 which directly powers the evaluation harness without any manual annotation.
 
 The data is hard-coded (not randomised) so the committed ``sample_data`` and the
@@ -453,7 +453,7 @@ def render_pdf(prop: SyntheticProperty, output_path: Path) -> None:
         str(output_path),
         pagesize=A4,
         title=prop.title,
-        author="PropIntelli AI — synthetic sample",
+        author="PropIntelli AI: synthetic sample",
         topMargin=20 * mm,
         bottomMargin=20 * mm,
     )

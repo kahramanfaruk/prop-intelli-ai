@@ -7,8 +7,8 @@ proportion metrics are reported with **Wilson score confidence intervals** so a
 "75 %" on four observations is not mistaken for a precise estimate.
 
 It also measures whether the pipeline's per-field **confidence scores are
-calibrated** — i.e. whether a field predicted with confidence 0.8 is correct
-about 80 % of the time — via the Brier score and a reliability table. The
+calibrated**, i.e. whether a field predicted with confidence 0.8 is correct
+about 80 % of the time, via the Brier score and a reliability table. The
 heuristic confidences are priors, not learned probabilities, so this turns "how
 sure is it?" into a measured, falsifiable claim rather than an assertion.
 
@@ -16,7 +16,7 @@ Independence of the metric from the pipeline: ground-truth labels are produced
 directly from canonical records (synthetic corpus) or written by hand (holdout
 corpus) and never pass through extraction or normalisation, while predictions go
 through the full pipeline. The only shared code is the value comparator in
-:mod:`propintelli.comparison`, which is unit-tested in isolation — so a
+:mod:`propintelli.comparison`, which is unit-tested in isolation, so a
 normalisation regression changes predictions but not labels and is caught.
 """
 
@@ -339,7 +339,7 @@ def compute_calibration(
     Every *predicted* field contributes one ``(confidence, correct)`` pair:
     correct iff the field is in ground truth and matches it, so an overconfident
     hallucination is penalised. Missing predictions have no confidence and are
-    excluded — calibration concerns the scores the pipeline actually emits.
+    excluded: calibration concerns the scores the pipeline actually emits.
 
     Parameters
     ----------

@@ -1,4 +1,4 @@
-"""Bronze layer — immutable raw-document store.
+"""Bronze layer: immutable raw-document store.
 
 Each ingested document is assigned a stable UUID, written verbatim under the
 Bronze directory together with a manifest (original filename, SHA-256 content
@@ -142,8 +142,8 @@ class DocumentStore:
     def iter_documents(self) -> Iterator[BronzeEntry]:
         """Yield every document resident in the Bronze store.
 
-        Enumerates documents written by *any* producer — the Python pipeline or
-        the C# ingestion API — by scanning for the stored ``original.*`` file in
+        Enumerates documents written by *any* producer, the Python pipeline or
+        the C# ingestion API, by scanning for the stored ``original.*`` file in
         each document directory. The original filename is read from the manifest
         when present, tolerating both snake_case and camelCase manifest keys.
 

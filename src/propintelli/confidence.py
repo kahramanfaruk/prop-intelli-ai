@@ -28,8 +28,8 @@ _WEIGHT_SOURCE = 0.10
 
 # Completeness measures whether the fields *every* valid listing must carry (the
 # required fields: price, living area, postal code, city) were extracted. Optional
-# fields are legitimately sparse — a flat has no plot area, a sparse listing omits
-# the construction year — so their absence is a property of the document, not an
+# fields are legitimately sparse, a flat has no plot area, a sparse listing omits
+# the construction year, so their absence is a property of the document, not an
 # extraction failure, and must not depress confidence. Conflating the two would
 # penalise a correctly extracted sparse listing.
 _REQUIRED_FIELDS: tuple[str, ...] = required_field_names()

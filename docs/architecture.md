@@ -10,7 +10,7 @@ handled, and the local → Azure production mapping.
 
 ```mermaid
 flowchart LR
-    subgraph Bronze["Bronze — raw ingestion"]
+    subgraph Bronze["Bronze: raw ingestion"]
       U[PDF / image] --> API[C# .NET API\n/api/documents/upload]
       U --> CLI[Python CLI / worker]
       API --> RAW[(Raw store + manifest\nUUID, SHA-256)]
@@ -29,7 +29,7 @@ flowchart LR
       LB --> REC
     end
 
-    subgraph Silver["Silver — validated records"]
+    subgraph Silver["Silver: validated records"]
       REC --> NORM[Normalisation\ntypes, enums, dates, amounts]
       NORM --> VAL[Validation rules\nmandatory / range / plausibility]
       VAL --> CONF[Confidence model\n+ HITL routing]
@@ -41,16 +41,16 @@ flowchart LR
     CONF -->|< 0.60| HITL
     HITL --> DB
 
-    subgraph Gold["Gold — analytics"]
+    subgraph Gold["Gold: analytics"]
       DB --> G[(DuckDB + Parquet/CSV\nwide + features + market summary)]
     end
 ```
 
 **Medallion layers**
 
-- **Bronze** — immutable raw documents + manifest (filename, SHA-256, size, time).
-- **Silver** — cleaned, typed, validated `PropertyRecord`s with quality metadata.
-- **Gold** — analytics-ready wide table, long features table, and a market summary.
+- **Bronze**: immutable raw documents + manifest (filename, SHA-256, size, time).
+- **Silver**: cleaned, typed, validated `PropertyRecord`s with quality metadata.
+- **Gold**: analytics-ready wide table, long features table, and a market summary.
 
 ## 2. Stage responsibilities
 
@@ -73,8 +73,8 @@ flowchart LR
 
 The C# ingestion API and the Python extractor are decoupled through the shared
 Bronze store, not a direct call. The API writes an uploaded document (UUID +
-manifest) into Bronze; the Python worker runs `pipeline.process_pending()` — via
-`propintelli watch` (a poll loop) or `propintelli process-bronze` (one-shot) —
+manifest) into Bronze; the Python worker runs `pipeline.process_pending()`, via
+`propintelli watch` (a poll loop) or `propintelli process-bronze` (one-shot),
 which enumerates Bronze, processes any document without a prior run **in place**
 (preserving its id, not re-ingesting), and persists to Silver. This makes the
 `API → Bronze → preprocess → …` arrow fire end to end, and is idempotent (a
@@ -94,7 +94,7 @@ production this poll is replaced by an event trigger (Blob → Event Grid → qu
 | OCR | **Tesseract, optional & probed at runtime** | Free, local; engaged only when needed and available. | Cloud OCR (Azure DI) is better but paid; made the prod mapping. |
 | Storage | **SQLite (Silver) + DuckDB/Parquet (Gold)** | Zero-config, runs in CI, columnar analytics for free; SQLAlchemy keeps it swappable. | Postgres needs a running server (not offline-friendly for a take-home). |
 | Confidence/HITL | **Weighted score + thresholds** | Transparent, tunable, explainable to stakeholders. | A learned router needs labelled data we don't yet have. |
-| Tooling | **uv, ruff, mypy --strict, pytest** | Fast, reproducible, strict quality gates. | — |
+| Tooling | **uv, ruff, mypy --strict, pytest** | Fast, reproducible, strict quality gates. | n/a |
 
 ## 4. Handling document variance (a core requirement)
 
@@ -104,7 +104,7 @@ robust to this on three independent levels:
 1. **Layout-agnostic deterministic extraction.** Layer A anchors on German
    **labels and units** (`Kaufpreis`, `m²`, `Baujahr`, a 5-digit postal code, the
    `…straße N` address pattern), not on positions. It tolerates the label and
-   value being inline *or* on separate lines — exactly the difference between the
+   value being inline *or* on separate lines, exactly the difference between the
    tabular, prose, and sectioned sample layouts, all of which extract correctly.
 2. **Shared synonym vocabulary** (`extraction/vocabulary.py`) maps many German
    surface forms onto canonical values (e.g. `Fernwärme`/`Wärmepumpe`/`Gas-…` →
@@ -117,7 +117,7 @@ robust to this on three independent levels:
    Nebenkosten, Provision, Kaution), so a listing with several monetary lines
    still yields the right headline price.
 4. **LLM fallback for the long tail.** When a layout defeats the regexes, the
-   optional LLM layer — which does not depend on fixed positions — recovers the
+   optional LLM layer, which does not depend on fixed positions, recovers the
    field, and reconciliation decides which value to trust.
 
 The **synthetic** corpus deliberately spans three layouts, sale/cold-rent/warm-rent
@@ -148,7 +148,7 @@ overall = 0.40·extraction + 0.30·completeness + 0.20·validation_pass_rate + 0
 ```
 
 `completeness` is the fraction of the **required** fields (price, living area,
-postal code, city) that were extracted — the fields every valid listing must
+postal code, city) that were extracted, the fields every valid listing must
 carry. It deliberately does *not* count optional fields: a studio with no plot
 area or a sparse listing without an energy certificate is legitimately sparse, so
 penalising it would conflate "absent in the document" with "missed by the
@@ -162,7 +162,7 @@ extractor" and route correct records to review for no reason.
 
 A hard validation error (e.g. a missing mandatory field) blocks auto-approval
 regardless of the numeric score. Human corrections are written back with `manual`
-provenance — turning the platform into a continuously improving system rather
+provenance, turning the platform into a continuously improving system rather
 than a static parser.
 
 ## 7. Azure production mapping

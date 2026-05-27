@@ -3,7 +3,7 @@
 The schema is deliberately normalised: a central ``properties`` row holds the
 scalar attributes and quality summary, while sparse and repeating data live in
 child tables (``property_features``, ``validation_findings``). Per-field
-confidence and provenance are kept as JSON on the property row — they are always
+confidence and provenance are kept as JSON on the property row: they are always
 read together with the record and never queried relationally. A ``processing_runs``
 table records every pipeline execution, including failures, for auditability.
 

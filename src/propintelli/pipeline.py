@@ -1,8 +1,8 @@
 """End-to-end single-document orchestration.
 
-Wires the stages together — Bronze ingestion, preprocessing, hybrid extraction,
+Wires the stages together, Bronze ingestion, preprocessing, hybrid extraction,
 normalisation, validation, confidence scoring, record assembly, and Silver
-persistence — into one call. Stage failures are caught and converted into a
+persistence, into one call. Stage failures are caught and converted into a
 :class:`~propintelli.errors.ProcessingError`, so a single bad document never
 aborts a batch; the failure is recorded in the run audit and returned in the
 result for routing to human review.

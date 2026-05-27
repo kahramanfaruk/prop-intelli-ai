@@ -5,7 +5,7 @@
 # Brings up the C# ingestion API, the Streamlit review UI, and a Python worker.
 # The worker seeds the Silver store with the bundled sample exposés on startup,
 # then *watches* the shared Bronze store and extracts any document the API
-# ingests — so a file POSTed to the C# API is processed end to end. All services
+# ingests, so a file POSTed to the C# API is processed end to end. All services
 # share one data volume, so the Bronze raw store and Silver database are common.
 
 services:

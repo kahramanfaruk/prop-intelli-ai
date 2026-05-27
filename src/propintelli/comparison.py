@@ -65,7 +65,7 @@ def values_match(spec: FieldSpec, expected: Any, predicted: Any) -> bool:
     """Compare two already-typed/comparable values for one field.
 
     This operates on canonical, comparable primitives (numbers, booleans, and
-    enum/date values rendered as strings) — the form produced both by the
+    enum/date values rendered as strings), the form produced both by the
     evaluation harness when it flattens a record and by the ground-truth labels.
     Reconciliation, which works on raw extracted strings, instead composes the
     lower-level :func:`numeric_match` and :func:`text_match` helpers.

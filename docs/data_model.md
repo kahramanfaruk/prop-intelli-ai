@@ -14,7 +14,7 @@
 3. **Quality travels with data.** Confidence, provenance, validation findings, and
    the routing decision are attached to every record via a `QualityReport`.
 4. **Tri-state booleans.** Equipment features are `True` / `False` / `None`
-   (not stated). The pipeline never asserts a fact the document didn't make — and
+   (not stated). The pipeline never asserts a fact the document didn't make, and
    the `False` state is actually populated: the deterministic extractor detects
    German negation ("kein Balkon", "ohne Keller") and records an explicit absence,
    distinct from a feature the document simply never mentions.
@@ -39,7 +39,7 @@ PropertyRecord
 ```
 
 `price_per_sqm` is a **computed field** (`price_eur / living_area_sqm`), not stored
-input — derived enrichment for analytics.
+input, derived enrichment for analytics.
 
 ## Relational schema (Silver, SQLite via SQLAlchemy)
 
@@ -94,24 +94,24 @@ erDiagram
 
 ### Rationale for the table split
 
-- **`properties`** — one row per record holds the scalar attributes and the
+- **`properties`**: one row per record holds the scalar attributes and the
   quality summary. Per-field confidence/provenance live in **JSON columns**: they
   are always read together with the record and never queried relationally, so a
   child table would add joins without analytical value.
-- **`property_features`** — features are sparse and set-like; a long table keeps
+- **`property_features`**: features are sparse and set-like; a long table keeps
   the main row clean and makes "all listings with a balcony" a trivial filter.
-- **`validation_findings`** — a record can have many findings; a child table keeps
+- **`validation_findings`**: a record can have many findings; a child table keeps
   them queryable for data-quality dashboards.
-- **`processing_runs`** — an append-only audit of *every* execution, including
+- **`processing_runs`**: an append-only audit of *every* execution, including
   failures (with error code), independent of whether a record was produced. This
   is the operational backbone for monitoring and SLAs.
 
 ## Gold model (DuckDB / Parquet)
 
-- **`properties`** — a wide, analytics-friendly flattening (one row per listing,
+- **`properties`**: a wide, analytics-friendly flattening (one row per listing,
   enums as strings, money as doubles) exported to Parquet + CSV.
-- **`features`** — a long `(property_id, feature_name, value)` table.
-- **`market_summary`** — city-level aggregates for sale listings (count, avg
+- **`features`**: a long `(property_id, feature_name, value)` table.
+- **`market_summary`**: city-level aggregates for sale listings (count, avg
   price/m², avg area, avg confidence).
 
 ## Portability

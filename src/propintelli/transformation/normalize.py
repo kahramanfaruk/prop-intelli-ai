@@ -1,4 +1,4 @@
-"""Normalisation — raw extracted strings into typed, canonical values.
+"""Normalisation: raw extracted strings into typed, canonical values.
 
 Each reconciled :class:`~propintelli.schemas.extraction.FieldValue` carries a raw
 string and a provenance. Normalisation converts that string into the Python type

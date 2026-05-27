@@ -1,4 +1,4 @@
-"""Layer C — reconciliation of the deterministic and LLM extractions.
+"""Layer C: reconciliation of the deterministic and LLM extractions.
 
 When both layers produce a value for a field, agreement is strong evidence the
 value is correct, so the merged confidence is boosted. Disagreement is a signal

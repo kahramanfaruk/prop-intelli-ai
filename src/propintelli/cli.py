@@ -31,7 +31,7 @@ from propintelli.storage.gold import build_gold
 from propintelli.storage.repository import SilverRepository
 
 app = typer.Typer(
-    help="PropIntelli AI — extract structured data from real-estate exposés.",
+    help="PropIntelli AI: extract structured data from real-estate exposés.",
     no_args_is_help=True,
     add_completion=False,
 )
@@ -109,7 +109,7 @@ def batch_command(
 ) -> None:
     """Batch-process every PDF in a folder and print a summary."""
     report = run_batch(input_dir, build_default_pipeline())
-    table = Table(title=f"Batch summary — {report.total} documents")
+    table = Table(title=f"Batch summary: {report.total} documents")
     table.add_column("Outcome")
     table.add_column("Count", justify="right")
     table.add_row("Succeeded", str(report.succeeded))
@@ -156,14 +156,14 @@ def compare_prompts_command(
         raise typer.Exit(1)
 
     results = compare_prompt_variants(raw_dir, truth_dir, settings=settings)
-    table = Table(title=f"Prompt-variant comparison — provider '{settings.llm_provider.value}'")
+    table = Table(title=f"Prompt-variant comparison: provider '{settings.llm_provider.value}'")
     table.add_column("Variant")
     table.add_column("Macro F1", justify="right")
     table.add_column("Field accuracy", justify="right")
     table.add_column("Exact match", justify="right")
     table.add_column("Brier", justify="right")
     for variant, report in results:
-        brier = "—" if report.calibration is None else f"{report.calibration.brier_score:.3f}"
+        brier = "n/a" if report.calibration is None else f"{report.calibration.brier_score:.3f}"
         table.add_row(
             variant.value,
             f"{report.macro_f1:.3f}",
@@ -179,7 +179,7 @@ def process_bronze_command() -> None:
     """Process Bronze documents that have no run yet (e.g. uploaded via the API).
 
     One-shot counterpart to ``watch``: extracts every document ingested into the
-    shared Bronze store — including those written by the C# ingestion API — that
+    shared Bronze store, including those written by the C# ingestion API, that
     has not been processed, and persists the results to the Silver store.
     """
     pipeline = build_default_pipeline()
@@ -214,7 +214,7 @@ def watch_command(
     pipeline = build_default_pipeline()
     if seed_dir is not None:
         run_batch(seed_dir, pipeline, show_progress=False)
-    console.print(f"Watching Bronze store every {interval:g}s — Ctrl-C to stop.")
+    console.print(f"Watching Bronze store every {interval:g}s, Ctrl-C to stop.")
     try:
         while True:
             results = pipeline.process_pending()
@@ -264,7 +264,7 @@ def info_command() -> None:
 
 def _render_evaluation(report: EvaluationReport) -> None:
     """Print an evaluation report as Rich tables with headline metrics and CIs."""
-    table = Table(title=f"Field-level evaluation — {report.document_count} documents")
+    table = Table(title=f"Field-level evaluation: {report.document_count} documents")
     table.add_column("Field")
     table.add_column("Support", justify="right")
     table.add_column("Accuracy", justify="right")
@@ -295,7 +295,7 @@ def _render_evaluation(report: EvaluationReport) -> None:
     )
     console.print(
         f"[dim]Confidence intervals are Wilson score intervals; with "
-        f"{report.document_count} documents per-field intervals are wide — read them, "
+        f"{report.document_count} documents per-field intervals are wide, read them, "
         f"not the point estimates.[/dim]"
     )
     if report.calibration is not None:
@@ -327,13 +327,13 @@ def _render_calibration(calibration: CalibrationReport) -> None:
 
 
 def _pct(value: float | None) -> str:
-    """Format a metric in ``[0, 1]`` as a percentage, or ``—`` when undefined."""
-    return "—" if value is None else f"{value * 100:.1f}%"
+    """Format a metric in ``[0, 1]`` as a percentage, or ``n/a`` when undefined."""
+    return "n/a" if value is None else f"{value * 100:.1f}%"
 
 
 def _ci(bounds: tuple[float, float] | None) -> str:
-    """Format a confidence interval as ``lo-hi`` percentages, or ``—``."""
-    return "—" if bounds is None else f"{bounds[0] * 100:.0f}-{bounds[1] * 100:.0f}%"
+    """Format a confidence interval as ``lo-hi`` percentages, or ``n/a``."""
+    return "n/a" if bounds is None else f"{bounds[0] * 100:.0f}-{bounds[1] * 100:.0f}%"
 
 
 if __name__ == "__main__":  # pragma: no cover

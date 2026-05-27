@@ -1,9 +1,9 @@
-"""The extraction engine — orchestrates Layers A, B, and C.
+"""The extraction engine: orchestrates Layers A, B, and C.
 
 The engine always runs the deterministic Layer A, optionally runs the LLM
 Layer B, and reconciles them in Layer C. A failure in the LLM layer is caught and
 recorded as a warning so the document still completes on the deterministic
-result — the LLM degrades quality, never availability.
+result, the LLM degrades quality, never availability.
 """
 
 from __future__ import annotations

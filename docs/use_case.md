@@ -1,11 +1,11 @@
-# Use Case — Immobilien-Exposé Intelligence
+# Use Case: Immobilien-Exposé Intelligence
 
 ## Problem
 
 Real-estate listings (Immobilien-Exposés) arrive as PDFs from dozens of agencies
 and portals (e.g. ImmoScout exports). They are **visually unstructured** (every
-agency has its own layout), **semantically semi-structured** (the same concepts —
-price, area, year built — appear under different German labels), often
+agency has its own layout), **semantically semi-structured** (the same concepts,
+price, area, year built, appear under different German labels), often
 **image-heavy** (floor plans, badges), and **inconsistent** (missing fields,
 mixed number formats). Today this data is re-keyed by hand into CRMs and
 spreadsheets.
@@ -26,8 +26,8 @@ are ahead.
 ## Input → Output
 
 - **Input**: a German real-estate exposé as a PDF (digital text, scanned, or hybrid).
-- **Output**: a validated, normalised `PropertyRecord` (Pydantic v2) — see
-  [`data_model.md`](data_model.md) — covering **Fläche, Preis, Lage, Ausstattung,
+- **Output**: a validated, normalised `PropertyRecord` (Pydantic v2), see
+  [`data_model.md`](data_model.md), covering **Fläche, Preis, Lage, Ausstattung,
   Baujahr** and more, with per-field confidence, provenance, validation findings,
   and a human-in-the-loop routing decision. Persisted to a medallion store
   (SQLite → DuckDB/Parquet) and exportable as JSON/CSV.
@@ -70,7 +70,7 @@ around. All proportions carry 95% Wilson confidence intervals (small samples).
 | **Macro F1** | Mean per-field F1 (rewards correct absence) | ≥ 0.90 | **0.996** | **0.896** |
 | **Exact-match ratio** | Documents with every expected field correct | ≥ 0.70 | **1.00** | **0.33** |
 | **Confidence calibration** | Brier score (confidence vs. correctness) | well-calibrated | 0.030 | **0.038** |
-| **Auto-approval rate** | Share routed without human review | maximise safely | tunable via thresholds | — |
+| **Auto-approval rate** | Share routed without human review | maximise safely | tunable via thresholds | n/a |
 
 The synthetic number reflects consistency, not real-world accuracy; the holdout
 number is the honest generalization estimate. Methodology, the full per-field

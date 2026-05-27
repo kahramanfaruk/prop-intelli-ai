@@ -2,10 +2,10 @@
 
 Three documented variants trade off cost against robustness:
 
-* ``v1_direct`` — a terse instruction. Cheapest, least robust; a baseline.
-* ``v2_schema`` — anchors the model on the explicit field schema and demands a
+* ``v1_direct``: a terse instruction. Cheapest, least robust; a baseline.
+* ``v2_schema``: anchors the model on the explicit field schema and demands a
   single strict-JSON object. Far more reliable field naming and typing.
-* ``v3_reasoning`` — ``v2`` plus an internal self-check and a parallel
+* ``v3_reasoning``: ``v2`` plus an internal self-check and a parallel
   per-field confidence object, which feeds the platform's confidence model.
 
 All variants instruct the model to return ``{"fields": {...}}`` (with an extra
@@ -40,7 +40,7 @@ def _schema_block() -> str:
         elif spec.kind is FieldKind.BOOLEAN:
             descriptor = "true/false"
         required = " (required)" if spec.required else ""
-        lines.append(f"- {name}: {descriptor}{required} — {spec.label}")
+        lines.append(f"- {name}: {descriptor}{required}, {spec.label}")
     return "\n".join(lines)
 
 

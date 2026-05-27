@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   python-quality:
-    name: Python — lint, type, test, e2e
+    name: "Python: lint, type, test, e2e"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
           uv run propintelli evaluate
 
   dotnet-service:
-    name: C# — build & test IngestionApi
+    name: "C#: build & test IngestionApi"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,7 +64,7 @@ jobs:
         run: dotnet test services/IngestionApi.Tests/IngestionApi.Tests.csproj -c Release --no-build --verbosity normal
 
   docker-build:
-    name: Docker — build all images
+    name: "Docker: build all images"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

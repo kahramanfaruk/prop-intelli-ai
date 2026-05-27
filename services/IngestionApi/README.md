@@ -1,8 +1,8 @@
-# IngestionApi — C# / .NET 8 microservice
+# IngestionApi: C# / .NET 8 microservice
 
 A lightweight ASP.NET Core minimal API that fronts the PropIntelli pipeline. It
 accepts document uploads into the Bronze layer and exposes a validation endpoint
-that mirrors the Python plausibility rules — so the same contract is enforced at
+that mirrors the Python plausibility rules, so the same contract is enforced at
 the service boundary and inside the pipeline.
 
 ## Why C# here
@@ -29,10 +29,10 @@ services) or `Storage:DataDir` in `appsettings.json`.
 
 `/api/documents/upload` is hardened against malformed and abusive input:
 
-- **PDF only** — the payload must begin with the `%PDF-` signature (magic bytes),
+- **PDF only**: the payload must begin with the `%PDF-` signature (magic bytes),
   checked on the buffered content; a non-PDF is rejected with `400` regardless of
   the declared content type.
-- **Size cap** — bounded by `Upload:MaxBytes` (default 25 MB), enforced both at
+- **Size cap**: bounded by `Upload:MaxBytes` (default 25 MB), enforced both at
   the framework's multipart limit and with an explicit `413` from the endpoint.
 
 Authentication is intentionally omitted for this take-home; in production the

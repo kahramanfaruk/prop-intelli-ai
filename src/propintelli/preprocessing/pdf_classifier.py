@@ -3,10 +3,10 @@
 The pipeline must cope with three broad document categories that demand
 different handling:
 
-* ``DIGITAL`` — every page carries an embedded text layer; direct extraction is
+* ``DIGITAL``: every page carries an embedded text layer; direct extraction is
   fast and lossless.
-* ``SCANNED`` — pages are images with no text layer; OCR is required.
-* ``HYBRID`` — a mix (e.g. a digital brochure with a scanned floor-plan page).
+* ``SCANNED``: pages are images with no text layer; OCR is required.
+* ``HYBRID``: a mix (e.g. a digital brochure with a scanned floor-plan page).
 
 Classification is a pure function of per-page text density, which keeps it
 trivially testable and decoupled from the PDF library.

@@ -105,7 +105,7 @@ def test_process_pending_is_idempotent(tmp_path: Path, sample_pdf: Path) -> None
     pipeline, _ = _pipeline(tmp_path)
     _ingest_like_external_api(tmp_path / "bronze", "ext-1", sample_pdf)
     assert len(pipeline.process_pending()) == 1
-    # A second pass finds nothing new — already-audited documents are skipped.
+    # A second pass finds nothing new: already-audited documents are skipped.
     assert pipeline.process_pending() == []
 
 

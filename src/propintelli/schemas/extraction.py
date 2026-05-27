@@ -1,7 +1,7 @@
 """Extraction-time data structures.
 
-These models carry the *raw* output of the extraction layers — one
-:class:`FieldValue` per canonical field — before normalisation and validation
+These models carry the *raw* output of the extraction layers, one
+:class:`FieldValue` per canonical field, before normalisation and validation
 turn them into a typed :class:`~propintelli.schemas.property_record.PropertyRecord`.
 Keeping confidence and provenance attached at the field level is what enables
 per-field confidence reporting and targeted human review.

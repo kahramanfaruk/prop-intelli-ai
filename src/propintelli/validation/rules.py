@@ -4,7 +4,7 @@ The rules engine runs plausibility, mandatory-field, range, and cross-field
 checks over the normalised values. Each *applicable* rule contributes to a
 validation pass rate that feeds the confidence model; failures become
 :class:`~propintelli.schemas.property_record.ValidationFinding` records. Rules do
-not mutate or reject data — implausible values are kept and flagged so the
+not mutate or reject data: implausible values are kept and flagged so the
 document can be routed to human review rather than dropped.
 """
 

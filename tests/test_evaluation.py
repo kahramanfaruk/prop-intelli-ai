@@ -122,8 +122,8 @@ def test_evaluate_corpus_attaches_calibration(
 
 def test_holdout_corpus_is_harder_than_synthetic(tmp_path: Path) -> None:
     # The authored holdout exercises wording the generator never produces, so the
-    # deterministic baseline scores below the synthetic ceiling — the honest
-    # generalization signal — yet still recovers most fields.
+    # deterministic baseline scores below the synthetic ceiling, the honest
+    # generalization signal, yet still recovers most fields.
     raw_dir = tmp_path / "raw"
     truth_dir = tmp_path / "ground_truth"
     generate_holdout(raw_dir, truth_dir)

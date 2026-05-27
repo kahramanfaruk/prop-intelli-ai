@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     # Storage / data layout -------------------------------------------------
     data_dir: Path = Field(default=Path("./data"))
 
-    # Extraction — Layer B (LLM) -------------------------------------------
+    # Extraction: Layer B (LLM) -------------------------------------------
     llm_provider: LlmProvider = LlmProvider.NONE
     llm_prompt_variant: PromptVariant = PromptVariant.V2_SCHEMA
     llm_timeout_seconds: float = Field(default=60.0, gt=0)

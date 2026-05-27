@@ -1,4 +1,4 @@
-"""Silver layer — persistence of validated records via SQLAlchemy.
+"""Silver layer: persistence of validated records via SQLAlchemy.
 
 The :class:`SilverRepository` translates between the Pydantic
 :class:`~propintelli.schemas.property_record.PropertyRecord` and the relational

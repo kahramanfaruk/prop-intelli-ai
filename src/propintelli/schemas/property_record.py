@@ -7,7 +7,7 @@ routing decision.
 
 Design choice: the schema is intentionally *permissive* on value ranges. An
 implausible value (e.g. a negative price from a mis-parse) is kept and flagged by
-the validation layer rather than rejected outright — failures are routed to human
+the validation layer rather than rejected outright: failures are routed to human
 review, not silently dropped. Type correctness is guaranteed upstream by the
 normalisation step.
 """

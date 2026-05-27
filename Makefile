@@ -1,4 +1,4 @@
-# PropIntelli AI — developer convenience targets.
+# PropIntelli AI: developer convenience targets.
 # All Python targets run inside the uv-managed virtual environment.
 
 .PHONY: help install format lint typecheck test check samples e2e ui clean

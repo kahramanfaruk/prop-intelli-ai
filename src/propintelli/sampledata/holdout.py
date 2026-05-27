@@ -4,7 +4,7 @@ The synthetic generator (:mod:`propintelli.sampledata.generator`) renders
 canonical records with the *same* German vocabulary the deterministic extractor
 anchors on, so evaluating against it measures round-trip **consistency**, not
 real-world accuracy. This module is the complement: a small set of exposés
-written by hand to mimic the messiness of genuine listings —
+written by hand to mimic the messiness of genuine listings,
 
 * free-text prose rather than labelled key/value rows,
 * abbreviations (``Bj.``, ``Wfl.``, ``EBK``, ``OG``),
@@ -17,7 +17,7 @@ The labels are the values a human reader would record, *independent* of what the
 extractor happens to produce. Evaluating against this corpus therefore measures
 **generalization** to unseen wording. The text is authored rather than scraped:
 genuine portal PDFs cannot be redistributed for licensing reasons and the build
-assumes no network — but the documents are deliberately independent of the
+assumes no network, but the documents are deliberately independent of the
 extractor's templates, which is what a generalization metric requires.
 
 These documents intentionally include fields the deterministic baseline is
@@ -212,7 +212,7 @@ def render_holdout_pdf(document: HoldoutDocument, output_path: Path) -> None:
         str(output_path),
         pagesize=A4,
         title=lines[0] if lines else document.stem,
-        author="PropIntelli AI — authored holdout",
+        author="PropIntelli AI: authored holdout",
         topMargin=20 * mm,
         bottomMargin=20 * mm,
     ).build(flow)

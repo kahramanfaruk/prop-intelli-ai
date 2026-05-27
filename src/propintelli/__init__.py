@@ -1,4 +1,4 @@
-"""PropIntelli AI — document intelligence and data extraction platform.
+"""PropIntelli AI: document intelligence and data extraction platform.
 
 A medallion-architecture pipeline that converts unstructured real-estate exposes
 (PDF) into validated, structured property records. The package exposes a hybrid

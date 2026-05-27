@@ -84,7 +84,7 @@ def test_deterministic_records_negated_features_as_false() -> None:
 
 def test_deterministic_positive_mention_overrides_earlier_negation() -> None:
     # "Kein Stellplatz, aber ... Tiefgarage": one synonym is negated, another is
-    # present — a single positive mention is decisive evidence of presence.
+    # present: a single positive mention is decisive evidence of presence.
     fields = extract_deterministic(_NEGATION_TEXT)
     assert fields["parking"].raw_value == "true"
 

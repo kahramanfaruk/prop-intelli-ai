@@ -7,8 +7,8 @@ intervals** and a **calibration** check. Harness:
 
 | Corpus | Question it answers | How labels are made |
 | --- | --- | --- |
-| **Synthetic** (`sample_data/`) | Internal **consistency** — does the pipeline round-trip its own canonical records? | Generated from the records (generation is the inverse of extraction). |
-| **Holdout** (`sample_data/holdout/`) | **Generalization** — does it cope with wording it was not built around? | Authored by hand and labelled by hand, independent of the extractor. |
+| **Synthetic** (`sample_data/`) | Internal **consistency**: does the pipeline round-trip its own canonical records? | Generated from the records (generation is the inverse of extraction). |
+| **Holdout** (`sample_data/holdout/`) | **Generalization**: does it cope with wording it was not built around? | Authored by hand and labelled by hand, independent of the extractor. |
 
 ```bash
 uv run propintelli evaluate            # synthetic (consistency)
@@ -25,9 +25,9 @@ measure of **self-consistency**, not real-world accuracy: a high number there
 mostly proves the generator and extractor agree. It is still useful (it is stable,
 reproducible in CI, and exercises the full field/value space), but on its own it
 would overstate capability. The **holdout** corpus exists precisely to puncture
-that: it is written the way real listings read — free prose, abbreviations
+that: it is written the way real listings read: free prose, abbreviations
 (`Bj.`, `Wfl.`, `EBK`), several monetary amounts, negations, and phrasings the
-generator never emits — and is labelled by a human. The gap between the two
+generator never emits, and is labelled by a human. The gap between the two
 numbers is the honest measure of how much the synthetic ceiling transfers.
 
 ## Methodology
@@ -40,19 +40,19 @@ with one shared, unit-tested comparator (`propintelli.comparison`):
 - **Strings/enums/dates**: case-insensitive on canonical form.
 
 Each pair is a true positive (expected & correct), false positive (predicted but
-absent-or-wrong — a **hallucination**), or false negative (expected but
+absent-or-wrong, a **hallucination**), or false negative (expected but
 missing-or-wrong). From these: per-field accuracy/precision/recall/F1, macro-F1,
 micro field accuracy, and exact-match ratio. Every proportion is reported with a
 **95 % Wilson score interval**, because per-field support is small and a point
 estimate like "75 %" on four observations is not meaningful on its own.
 
-**Independence.** Labels are produced *without* running extraction — synthetically
-from canonical records, or by hand for the holdout — while predictions go through
+**Independence.** Labels are produced *without* running extraction, synthetically
+from canonical records, or by hand for the holdout, while predictions go through
 the full pipeline. The only code shared between the two sides is the value
 comparator, which is unit-tested in isolation. A normalisation regression
 therefore changes predictions but not labels, and is caught.
 
-## Synthetic results (consistency) — deterministic baseline, offline
+## Synthetic results (consistency): deterministic baseline, offline
 
 Measured on the 13-document corpus (`uv run propintelli evaluate`):
 
@@ -63,7 +63,7 @@ Measured on the 13-document corpus (`uv run propintelli evaluate`):
 | **Macro F1** | **0.996** |
 | **Exact-match ratio** | **100.0 %** |
 
-Produced by the **deterministic Layer A alone** — no LLM, no network — so the
+Produced by the **deterministic Layer A alone**, no LLM, no network, so the
 numbers are stable in CI. The corpus spans three layouts, sale/cold-rent/warm-rent
 listings, a sparse listing, negated ("kein Balkon") and explicitly-absent
 features, multi-amount price lines (Hausgeld/Provision/Kaution), and the full
@@ -71,11 +71,11 @@ enum space (every energy class A+…H, eight heating types, furnished, barrier-f
 
 The one sub-perfect field is `garden` (precision 80 %, 95 % CI 51–100 %): the
 regex matches "Garten" in the title *"…nahe Englischer Garten…"* (a park, not a
-private garden). This is a **semantic** false positive — not a negation — and is
+private garden). This is a **semantic** false positive, not a negation, and is
 exactly the case the LLM reconciliation layer is designed to resolve. It is left
 in deliberately: a take-home that reports 100 % on everything invites scepticism.
 
-## Holdout results (generalization) — deterministic baseline, offline
+## Holdout results (generalization): deterministic baseline, offline
 
 Measured on the 3-document authored holdout:
 
@@ -86,7 +86,7 @@ Measured on the 3-document authored holdout:
 | **Macro F1** | **0.896** |
 | **Exact-match ratio** | **33.3 %** |
 
-The score is **lower than the synthetic ceiling, and that is the point** — it is
+The score is **lower than the synthetic ceiling, and that is the point**: it is
 the cost of unseen wording, measured rather than assumed. The residual misses are
 real, explainable limitations of a pure-regex baseline:
 
@@ -99,7 +99,7 @@ real, explainable limitations of a pure-regex baseline:
 | `energy_class` | bare "Klasse E" (no "Energie…klasse") | left strict on purpose to avoid false positives on stray "Klasse" | LLM layer |
 
 Several weaknesses the holdout first revealed **were fixed** rather than just
-reported — they were clear, general bugs the closed-loop corpus had masked: city
+reported, they were clear, general bugs the closed-loop corpus had masked: city
 and street names over-capturing across a sentence boundary ("Karlsruhe. Bezugsfrei",
 "Wiehre. Sundgauallee"), a parenthetical being read as a district even when it was
 not near the address ("Verhandlungsbasis (Kaufpreis)"), and compound heating words
@@ -114,7 +114,7 @@ field contributes a `(confidence, correct)` pair (a hallucination counts as
 incorrect at its stated confidence), from which it computes the **Brier score**
 and a **reliability table** (mean confidence vs. empirical accuracy per bin).
 
-Holdout calibration (the meaningful one — it contains real errors):
+Holdout calibration (the meaningful one: it contains real errors):
 
 | Confidence bin | Count | Mean confidence | Empirical accuracy |
 | --- | ---: | ---: | ---: |
@@ -125,16 +125,16 @@ Holdout calibration (the meaningful one — it contains real errors):
 
 **Brier score 0.038** (n = 59). The scores are reasonably calibrated and, if
 anything, mildly *under-confident* (the model is right slightly more often than it
-claims) — which is the safe direction for a confidence-gated human-in-the-loop
+claims), which is the safe direction for a confidence-gated human-in-the-loop
 system: it errs toward review, not toward unwarranted auto-approval. On the
 synthetic corpus the Brier is 0.030 (n = 283), but with almost no errors there it
 mainly reflects how far the priors sit below 1.0, so the holdout figure is the one
 to trust.
 
-## LLM prompt-variant comparison — measured
+## LLM prompt-variant comparison: measured
 
 Backend: **Ollama, llama3.1 (8B, Q4_K_M), `temperature=0`** (Ollama 0.24.0), on the
-3-document holdout — the synthetic corpus is at the deterministic ceiling, so it
+3-document holdout: the synthetic corpus is at the deterministic ceiling, so it
 cannot show the LLM's effect. Each row is the *hybrid* result (deterministic
 Layer A reconciled with that prompt variant), produced with the same harness via
 `uv run propintelli compare-prompts`:
@@ -149,28 +149,28 @@ Layer A reconciled with that prompt variant), produced with the same harness via
 This is **not** the naive "more prompting is better" story:
 
 - **v1 (terse)** makes no net difference: its outputs carry a low default
-  confidence (0.55), so reconciliation keeps the higher-confidence regex values —
+  confidence (0.55), so reconciliation keeps the higher-confidence regex values:
   it neither adds nor breaks anything.
-- **v2 (schema-anchored)** is the useful one — it lifts field accuracy 90.6 → 95.3 %
+- **v2 (schema-anchored)** is the useful one: it lifts field accuracy 90.6 → 95.3 %
   by recovering fields the regex misses (verified on the holdout: the post-posed
   "einen Aufzug gibt es nicht" → elevator absent, bare "Klasse E", and the
   hyphenated district "Durlach"). But it also hallucinates some fields, lowering
   macro-F1 (0.888) and calibration (Brier 0.093). It is a **recall-for-precision
   trade**, not a free win.
-- **v3 (reasoning + self-confidence)** is the worst here — below the deterministic
+- **v3 (reasoning + self-confidence)** is the worst here: below the deterministic
   baseline on every metric, and it turns the one fully-correct document into an
   error (exact-match 33 % → 0 %). The mechanism follows from reconciliation:
   v2's flat 0.70 confidence rarely overrides the regex (it only *adds* fields),
   whereas v3's *self-reported* confidences are high, so when the 8B model is
   confidently wrong it *overrides* a correct deterministic value. The concrete
-  lesson: **do not trust a small model's self-reported confidence** — the
+  lesson: **do not trust a small model's self-reported confidence**, the
   conservative flat default is safer.
 
-Caveat — with **n = 3** these point differences are within noise (per-field Wilson
+Caveat: with **n = 3** these point differences are within noise (per-field Wilson
 intervals are wide); the robust conclusions are *qualitative*: the recall/precision
 trade-off is real, heavier prompting does not help an 8B local model, and the
 deterministic baseline + reconciliation + HITL are what keep the LLM's failure
-modes contained. A larger or hosted model may rank differently — re-run
+modes contained. A larger or hosted model may rank differently: re-run
 `compare-prompts` on your backend to measure it.
 
 Reproduce:
@@ -196,4 +196,4 @@ uv run propintelli evaluate --raw-dir sample_data/holdout/raw \
 
 To evaluate on **your own** exposés, drop labelled pairs into a `raw/` and
 `ground_truth/` folder (a `{ "document": "...", "fields": { ... } }` JSON per PDF)
-and point `evaluate` at them — the harness is corpus-agnostic.
+and point `evaluate` at them: the harness is corpus-agnostic.

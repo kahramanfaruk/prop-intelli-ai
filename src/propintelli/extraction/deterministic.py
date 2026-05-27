@@ -1,4 +1,4 @@
-"""Layer A — deterministic, layout-agnostic extraction.
+"""Layer A: deterministic, layout-agnostic extraction.
 
 A regex/heuristic extractor that is always run, regardless of whether an LLM
 backend is configured. It is fast, free, fully offline, and deterministic, which
