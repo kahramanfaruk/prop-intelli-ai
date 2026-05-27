@@ -78,6 +78,7 @@ class SilverRepository:
         db_path : Path
             Path to the SQLite database file.
         """
+        self._db_path = db_path
         db_path.parent.mkdir(parents=True, exist_ok=True)
         # NullPool closes each connection on return, which suits the discrete
         # save/get/list access pattern over file-based SQLite and avoids leaking
@@ -94,6 +95,24 @@ class SilverRepository:
         """
         self._engine.dispose()
 
+    def _ensure_storage(self) -> None:
+        """Ensure the database directory and schema exist before an access.
+
+        A long-lived holder of this repository (for example the Streamlit app,
+        which caches it for the session) can outlive its data directory if an
+        external cleanup removes it (``make clean``, log rotation, a stray
+        ``rm -rf data``). Because the engine uses :class:`NullPool` it opens a
+        fresh connection per operation, so a removed directory would otherwise
+        surface as ``sqlite3.OperationalError: unable to open database file`` on
+        the next write, and a removed file as ``no such table``. Recreating the
+        directory (always, cheap) and the schema (only when the database file is
+        missing) keeps operations resilient to that without per-call overhead in
+        the healthy case.
+        """
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        if not self._db_path.exists():
+            Base.metadata.create_all(self._engine)
+
     def save_record(self, record: PropertyRecord) -> None:
         """Insert or replace a property record.
 
@@ -108,6 +127,7 @@ class SilverRepository:
             If the record cannot be written.
         """
         try:
+            self._ensure_storage()
             with self._session_factory.begin() as session:
                 existing = session.get(Property, record.property_id)
                 if existing is not None:
@@ -133,6 +153,7 @@ class SilverRepository:
         PropertyRecord or None
             The reconstructed record.
         """
+        self._ensure_storage()
         with self._session_factory() as session:
             orm = session.get(Property, property_id)
             return _to_record(orm) if orm is not None else None
@@ -162,6 +183,7 @@ class SilverRepository:
             statement = statement.where(Property.review_status == review_status.value)
         if limit is not None:
             statement = statement.limit(limit)
+        self._ensure_storage()
         with self._session_factory() as session:
             return [_to_record(orm) for orm in session.scalars(statement)]
 
@@ -173,6 +195,7 @@ class SilverRepository:
         info : ProcessingRunInfo
             The run outcome to record.
         """
+        self._ensure_storage()
         with self._session_factory.begin() as session:
             session.add(
                 ProcessingRun(
@@ -188,6 +211,7 @@ class SilverRepository:
 
     def count(self) -> int:
         """Return the number of stored property records."""
+        self._ensure_storage()
         with self._session_factory() as session:
             return len(list(session.scalars(select(Property.property_id))))
 
@@ -203,6 +227,7 @@ class SilverRepository:
         set of str
             Document ids recorded in the processing-run audit log.
         """
+        self._ensure_storage()
         with self._session_factory() as session:
             return set(session.scalars(select(ProcessingRun.document_id)))
 

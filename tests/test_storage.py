@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -113,6 +114,18 @@ def test_silver_round_trip_preserves_record(tmp_path: Path) -> None:
     assert loaded.quality.field_provenance["price_eur"] is Provenance.RECONCILED
     assert len(loaded.quality.findings) == 1
     assert loaded.availability_date == date(2026, 7, 1)
+
+
+def test_silver_self_heals_if_data_dir_removed_after_init(tmp_path: Path) -> None:
+    # A long-lived holder (e.g. the cached Streamlit repository) can outlive its
+    # data directory if an external cleanup removes it. Writes must then recover
+    # rather than fail with "unable to open database file" / "no such table".
+    repo = SilverRepository(tmp_path / "silver" / "propintelli.sqlite")
+    repo.save_record(_record(property_id="before"))
+    shutil.rmtree(tmp_path / "silver")  # external cleanup wipes the store
+
+    repo.save_record(_record(property_id="after"))  # must not raise
+    assert repo.get_record("after") is not None
 
 
 def test_silver_upsert_replaces_existing(tmp_path: Path) -> None:
