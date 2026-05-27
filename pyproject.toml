@@ -5,7 +5,7 @@ description = "Document Intelligence & Data Extraction Platform for real-estate 
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Omer Faruk Ahraman" }]
+authors = [{ name = "Faruk Ahraman" }]
 dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
