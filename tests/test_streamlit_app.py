@@ -83,3 +83,35 @@ def test_apply_edits_applies_a_changed_date(tmp_path: Path) -> None:
     repo = SilverRepository(tmp_path / "silver" / "db.sqlite")
     repo.save_record(corrected)
     assert repo.get_record("hitl1") is not None
+
+
+def test_publish_gold_returns_none_for_empty_store(tmp_path: Path) -> None:
+    app = _load_app()
+    repo = SilverRepository(tmp_path / "silver" / "db.sqlite")
+    assert app._publish_gold(repo, tmp_path / "gold") is None
+
+
+def test_publish_gold_builds_artifacts_from_silver(tmp_path: Path) -> None:
+    app = _load_app()
+    repo = SilverRepository(tmp_path / "silver" / "db.sqlite")
+    repo.save_record(_record())
+
+    artifacts = app._publish_gold(repo, tmp_path / "gold")
+
+    assert artifacts is not None
+    assert artifacts.properties_csv.exists()
+    assert artifacts.summary_csv.exists()
+    # The sale listing appears in the city-level market summary.
+    assert any(row["city"] == "Nürnberg" for row in artifacts.summary)
+
+
+def test_app_renders_headlessly_without_error() -> None:
+    # Smoke-test the whole script via Streamlit's headless AppTest: it must run
+    # (no upload -> early return) and expose the Gold panel in the sidebar.
+    from streamlit.testing.v1 import AppTest
+
+    app_test = AppTest.from_file(str(_APP_PATH), default_timeout=30).run()
+
+    assert not app_test.exception
+    assert any("PropIntelli AI" in title.value for title in app_test.title)
+    assert any(header.value == "Gold analytics layer" for header in app_test.sidebar.header)

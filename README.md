@@ -23,7 +23,8 @@ Baujahr** (and more) from PDF exposés.
 - **Medallion architecture**: Bronze (raw + manifest) → Silver (validated records,
   SQLite/SQLAlchemy) → Gold (DuckDB + Parquet/CSV analytics).
 - **Confidence-driven HITL**: auto-approve / review / manual routing; a Streamlit
-  app to correct flagged fields and feed corrections back.
+  app to correct flagged fields, feed corrections back, and publish the Gold
+  analytics layer from Silver on demand (the full Bronze → Silver → Gold flow).
 - **Two-corpus evaluation**: a synthetic corpus measures **consistency** (0.996
   macro-F1) and an independently-authored **holdout** measures **generalization**
   (0.896 macro-F1); all metrics carry **95% Wilson confidence intervals**, and

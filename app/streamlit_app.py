@@ -3,7 +3,10 @@
 Upload an exposé PDF, run the extraction pipeline, and review the structured
 result with uncertain fields highlighted. Reviewers can correct flagged values
 and persist the approved record to the Silver store, then download it as JSON,
-demonstrating the confidence-driven HITL loop end to end.
+demonstrating the confidence-driven HITL loop end to end. A sidebar panel
+publishes the Gold analytics layer (DuckDB + Parquet/CSV and a city-level market
+summary) from the Silver store on demand, so the full Bronze -> Silver -> Gold
+medallion is visible in the demo.
 
 Run with::
 
@@ -13,6 +16,7 @@ Run with::
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 import streamlit as st
@@ -25,7 +29,7 @@ from propintelli.schemas.enums import Provenance, ReviewStatus
 from propintelli.schemas.extraction import FieldValue
 from propintelli.schemas.fields import PROPERTY_FIELDS
 from propintelli.schemas.property_record import PropertyRecord
-from propintelli.storage.repository import SilverRepository
+from propintelli.storage import GoldArtifacts, SilverRepository, build_gold
 from propintelli.transformation import normalize_value
 
 _STATUS_STYLE: dict[ReviewStatus, tuple[str, str]] = {
@@ -133,6 +137,64 @@ def _apply_edits(record: PropertyRecord, edits: dict[str, str]) -> PropertyRecor
     )
 
 
+def _publish_gold(repository: SilverRepository, gold_dir: Path) -> GoldArtifacts | None:
+    """Publish the Gold analytics layer from the current Silver store.
+
+    Parameters
+    ----------
+    repository : SilverRepository
+        The Silver store to read validated records from.
+    gold_dir : Path
+        Output directory for the Gold artifacts.
+
+    Returns
+    -------
+    GoldArtifacts or None
+        The build artifacts, or ``None`` when the Silver store is empty.
+    """
+    records = repository.list_records()
+    if not records:
+        return None
+    return build_gold(records, gold_dir)
+
+
+def _render_gold_panel(repository: SilverRepository, gold_dir: Path) -> None:
+    """Render the sidebar Gold panel: publish analytics from Silver on demand.
+
+    Gold is an aggregate, recomputable view rebuilt from the whole Silver store,
+    so it is published explicitly rather than on every save. The panel surfaces
+    that step in the demo and shows the resulting market summary and exports.
+    """
+    with st.sidebar:
+        st.header("Gold analytics layer")
+        count = repository.count()
+        st.caption(f"Silver store: {count} record(s). Gold is rebuilt from Silver on demand.")
+        if not st.button("Publish Gold from Silver", disabled=count == 0):
+            return
+        artifacts = _publish_gold(repository, gold_dir)
+        if artifacts is None:
+            st.info("No records in the Silver store yet.")
+            return
+        st.success(f"Published Gold to `{gold_dir}`.")
+        if artifacts.summary:
+            st.caption("Market summary (sale listings)")
+            st.dataframe(artifacts.summary, use_container_width=True)
+        else:
+            st.caption("No sale listings to summarise yet.")
+        st.download_button(
+            "Download properties.csv",
+            data=artifacts.properties_csv.read_bytes(),
+            file_name="properties.csv",
+            mime="text/csv",
+        )
+        st.download_button(
+            "Download market_summary.csv",
+            data=artifacts.summary_csv.read_bytes(),
+            file_name="market_summary.csv",
+            mime="text/csv",
+        )
+
+
 def main() -> None:
     """Run the Streamlit application."""
     st.set_page_config(page_title="PropIntelli AI", page_icon="🏠", layout="wide")
@@ -143,6 +205,7 @@ def main() -> None:
     )
 
     pipeline, repository = _services()
+    _render_gold_panel(repository, get_settings().gold_dir)
     upload = st.file_uploader("Exposé PDF", type=["pdf"])
     if upload is None:
         st.info("Upload a PDF to begin. Sample exposés live in `sample_data/raw/`.")
