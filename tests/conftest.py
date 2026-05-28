@@ -13,15 +13,24 @@ from propintelli.sampledata import SAMPLE_PROPERTIES, generate_samples
 
 
 @pytest.fixture(autouse=True)
-def _isolated_data_dir(
+def _isolated_settings(
     tmp_path: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
 ) -> Iterator[None]:
-    """Route the configured data directory to a temp dir for every test.
+    """Isolate the process settings from the developer's environment.
 
-    Keeps the repository clean: any Bronze/Silver/Gold artifacts written via the
-    process settings land under a per-test temporary directory.
+    Two pins keep the suite hermetic and deterministic:
+
+    * the data directory is routed to a per-test temporary directory, so any
+      Bronze/Silver/Gold artifacts never touch the repository;
+    * the LLM provider is forced to ``none``, so a local ``.env`` that enables
+      Ollama (for the demo) cannot make the tests reach a network backend.
+
+    Environment variables outrank the ``.env`` file in ``pydantic-settings`` but
+    are outranked by explicit constructor arguments, so tests that exercise an
+    LLM backend by passing ``Settings(llm_provider=...)`` are unaffected.
     """
     monkeypatch.setenv("PROPINTELLI_DATA_DIR", str(tmp_path / "propintelli-data"))
+    monkeypatch.setenv("PROPINTELLI_LLM_PROVIDER", "none")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

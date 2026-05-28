@@ -6,6 +6,22 @@ declared for the field in the registry (Decimal, float, int, date, bool, or a
 canonical enum), parsing numbers under the convention implied by provenance. The
 per-field confidence and provenance are carried through so downstream scoring and
 the UI can reason about them.
+
+This is the schema-enforcement / standardisation step: every field ends up with a
+consistent Python type regardless of its source, the deterministic rules
+(German-formatted tables), the LLM (free-form text), or any future backend.
+Concretely:
+
+* ``price_eur`` -> a :class:`~decimal.Decimal` with two decimal places;
+* ``living_area_sqm`` -> a :class:`float`;
+* ``rooms`` -> a :class:`float` (German listings quote half-rooms, e.g. 2.5);
+* ``year_built`` -> an :class:`int`;
+* ``availability_date`` -> a :class:`~datetime.date`;
+* ``energy_class`` -> an :class:`~propintelli.schemas.enums.EnergyClass` member;
+* ``balcony`` / ``cellar`` -> a :class:`bool`, or ``None`` when not stated.
+
+So ``"450.000 EUR"``, ``"450000"``, and ``"450,000.00"`` all collapse to the same
+typed value (``Decimal("450000.00")``).
 """
 
 from __future__ import annotations

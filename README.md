@@ -97,6 +97,12 @@ PROPINTELLI_LLM_PROVIDER=ollama        # or openai / azure_openai
 PROPINTELLI_LLM_PROMPT_VARIANT=v2_schema
 ```
 
+Setting this in `.env` enables the LLM for every local entry point (the UI,
+`batch`, `run`, `watch`). The test suite and `propintelli evaluate` stay
+deterministic regardless, the suite pins the provider to `none` and `evaluate`
+defaults to it, so CI and the reported accuracy numbers are unaffected by a
+local `.env`.
+
 With a backend set, compare the three prompt variants on a corpus:
 
 ```bash
