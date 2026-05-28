@@ -11,7 +11,9 @@ medallion is visible in the demo.
 The active extraction backend is shown so it is clear whether the optional LLM
 layer is engaged; the per-field source breakdown and the reconciliation notes
 make the hybrid (deterministic + LLM) decisions visible, including where the two
-layers disagreed.
+layers disagreed. A corpus-analytics section charts the stored Silver records,
+the review-status distribution and, for sale listings, price against living area,
+so the medallion's downstream value is visible, not just per-document output.
 
 Run deterministic (offline)::
 
@@ -29,13 +31,14 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import streamlit as st
 
 from propintelli.config import LlmProvider, Settings, get_settings
 from propintelli.ingestion.document_store import DocumentStore
 from propintelli.logging_setup import configure_logging
 from propintelli.pipeline import Pipeline
-from propintelli.schemas.enums import Provenance, ReviewStatus
+from propintelli.schemas.enums import ListingType, Provenance, ReviewStatus
 from propintelli.schemas.extraction import FieldValue
 from propintelli.schemas.fields import PROPERTY_FIELDS
 from propintelli.schemas.property_record import PropertyRecord
@@ -127,6 +130,53 @@ def _provenance_breakdown(record: PropertyRecord) -> str | None:
     return " · ".join(parts)
 
 
+def _review_status_counts(records: list[PropertyRecord]) -> dict[str, int]:
+    """Count stored records by their human-in-the-loop review status.
+
+    Parameters
+    ----------
+    records : list of PropertyRecord
+        The records to tally.
+
+    Returns
+    -------
+    dict of str to int
+        Count per :class:`~propintelli.schemas.enums.ReviewStatus` value, in
+        canonical status order and including statuses with a zero count, so the
+        chart axis is stable as records accumulate.
+    """
+    counts = Counter(record.quality.review_status.value for record in records)
+    return {status.value: counts[status.value] for status in ReviewStatus}
+
+
+def _sale_price_area_points(records: list[PropertyRecord]) -> list[dict[str, float]]:
+    """Extract (living area, price) points for sale listings.
+
+    Only sale listings with both a price and a living area are returned: rent and
+    sale prices are not mixed (their scales differ by orders of magnitude), and
+    each point is a real listing rather than an aggregate, so the chart stays
+    honest at the small sample sizes typical of a demo store.
+
+    Parameters
+    ----------
+    records : list of PropertyRecord
+        The records to extract from.
+
+    Returns
+    -------
+    list of dict
+        One ``{"living_area_sqm": float, "price_eur": float}`` mapping per
+        qualifying sale listing.
+    """
+    return [
+        {"living_area_sqm": record.living_area_sqm, "price_eur": float(record.price_eur)}
+        for record in records
+        if record.listing_type is ListingType.SALE
+        and record.price_eur is not None
+        and record.living_area_sqm is not None
+    ]
+
+
 def _render_header(record: PropertyRecord) -> None:
     """Render the status banner and headline quality metrics."""
     quality = record.quality
@@ -161,6 +211,38 @@ def _render_processing_notes(record: PropertyRecord) -> None:
     with st.expander(f"Reconciliation & processing notes ({len(warnings)})"):
         for note in warnings:
             st.write(f"- {note}")
+
+
+def _render_corpus_analytics(repository: SilverRepository) -> None:
+    """Render corpus-level charts over the stored Silver records.
+
+    Shows the review-status distribution (the routing outcome of the confidence
+    model, an exact count that is honest at any sample size) and, for sale
+    listings, price against living area (raw per-listing points, not an
+    aggregate). Both read from the Silver store, so they reflect every persisted
+    record rather than just the current upload. Nothing is rendered when the
+    store is empty.
+
+    Parameters
+    ----------
+    repository : SilverRepository
+        The Silver store to read records from.
+    """
+    records = repository.list_records()
+    if not records:
+        return
+    st.subheader(f"Corpus analytics · {len(records)} stored record(s)")
+    status_column, scatter_column = st.columns(2)
+    with status_column:
+        st.caption("Review-status distribution")
+        st.bar_chart(pd.DataFrame({"records": _review_status_counts(records)}))
+    with scatter_column:
+        points = _sale_price_area_points(records)
+        if points:
+            st.caption(f"Sale listings: price vs living area (n={len(points)})")
+            st.scatter_chart(pd.DataFrame(points), x="living_area_sqm", y="price_eur")
+        else:
+            st.caption("No sale listings with both price and living area yet.")
 
 
 def _render_review_form(record: PropertyRecord) -> dict[str, str]:
@@ -298,6 +380,7 @@ def main() -> None:
     upload = st.file_uploader("Exposé PDF", type=["pdf"])
     if upload is None:
         st.info("Upload a PDF to begin. Sample exposés live in `sample_data/raw/`.")
+        _render_corpus_analytics(repository)
         return
 
     spinner_message = (
@@ -335,6 +418,8 @@ def main() -> None:
         file_name=f"{record.property_id}.json",
         mime="application/json",
     )
+
+    _render_corpus_analytics(repository)
 
 
 if __name__ == "__main__":

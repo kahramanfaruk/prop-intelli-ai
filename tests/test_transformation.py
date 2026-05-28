@@ -47,6 +47,15 @@ def test_normalize_value_decimal_from_german() -> None:
     assert normalize_value(spec, value) == Decimal("449000.00")
 
 
+def test_normalize_value_reconciled_amount_uses_german_convention() -> None:
+    # Reconciliation's agreement branch tags the value RECONCILED while keeping
+    # the deterministic layer's German-formatted string, so it must parse as
+    # German (449.000 -> 449000.00), not dot-decimal (which would yield 449.00).
+    spec = get_field("price_eur")
+    value = FieldValue(raw_value="449.000", provenance=Provenance.RECONCILED)
+    assert normalize_value(spec, value) == Decimal("449000.00")
+
+
 def test_normalize_value_date_both_formats() -> None:
     spec = get_field("availability_date")
     assert normalize_value(spec, FieldValue(raw_value="01.07.2026")) == date(2026, 7, 1)

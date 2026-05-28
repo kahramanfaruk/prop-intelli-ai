@@ -142,6 +142,40 @@ def test_provenance_breakdown_is_none_when_no_fields_were_extracted() -> None:
     assert app._provenance_breakdown(_record()) is None
 
 
+def test_review_status_counts_includes_every_status_in_canonical_order() -> None:
+    app = _load_app()
+    auto = _record()
+    auto.quality.review_status = ReviewStatus.AUTO_APPROVED
+    review = _record()  # _record() defaults to NEEDS_REVIEW
+    counts = app._review_status_counts([auto, review])
+    assert counts == {"auto_approved": 1, "needs_review": 1, "manual_required": 0}
+    assert list(counts) == ["auto_approved", "needs_review", "manual_required"]
+
+
+def test_sale_price_area_points_keeps_only_sale_listings_with_price_and_area() -> None:
+    app = _load_app()
+    sale = _record()  # SALE, price 449000.00, area 92.0
+    rent = PropertyRecord(
+        property_id="rent1",
+        source_document="r.pdf",
+        listing_type=ListingType.RENT,
+        price_eur=Decimal("980.00"),
+        living_area_sqm=58.5,
+        quality=QualityReport(overall_confidence=0.9, review_status=ReviewStatus.AUTO_APPROVED),
+    )
+    sale_without_area = PropertyRecord(
+        property_id="sale2",
+        source_document="s2.pdf",
+        listing_type=ListingType.SALE,
+        price_eur=Decimal("500000.00"),
+        quality=QualityReport(overall_confidence=0.9, review_status=ReviewStatus.AUTO_APPROVED),
+    )
+
+    points = app._sale_price_area_points([sale, rent, sale_without_area])
+
+    assert points == [{"living_area_sqm": 92.0, "price_eur": 449000.0}]
+
+
 def test_app_renders_headlessly_without_error() -> None:
     # Smoke-test the whole script via Streamlit's headless AppTest: it must run
     # (no upload -> early return) and expose the Gold panel in the sidebar.

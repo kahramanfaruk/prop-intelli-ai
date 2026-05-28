@@ -27,7 +27,8 @@ Baujahr** (and more) from PDF exposés.
   analytics layer from Silver on demand (the full Bronze → Silver → Gold flow).
   The app shows the active extraction backend, the per-field source breakdown,
   and the reconciliation notes, so the hybrid (deterministic + LLM) decisions are
-  visible during a demo.
+  visible during a demo, plus corpus-analytics charts (review-status distribution
+  and, for sale listings, price vs. living area) over the stored Silver records.
 - **Two-corpus evaluation**: a synthetic corpus measures **consistency** (0.996
   macro-F1) and an independently-authored **holdout** measures **generalization**
   (0.896 macro-F1); all metrics carry **95% Wilson confidence intervals**, and
@@ -80,6 +81,9 @@ uv run propintelli evaluate \              # generalization: lower, honest, with
 
 uv run streamlit run app/streamlit_app.py  # human-in-the-loop demo UI
 ```
+
+The UI's corpus-analytics charts read the Silver store, so running `batch` (above)
+first populates them; a fresh store simply shows no charts until records exist.
 
 Quality gate (what CI enforces):
 

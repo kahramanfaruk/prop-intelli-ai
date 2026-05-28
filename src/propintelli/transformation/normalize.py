@@ -103,7 +103,12 @@ def normalize_value(spec: FieldSpec, value: FieldValue) -> Any | None:
     raw = value.raw_value
     if raw is None or not raw.strip():
         return None
-    german = value.provenance is Provenance.DETERMINISTIC
+    # Numbers are parsed under the locale implied by provenance. The deterministic
+    # layer emits German-formatted numbers; the LLM is instructed to emit
+    # dot-decimal ones. A reconciled value carries the deterministic layer's
+    # German-formatted string (reconciliation's agreement branch preserves it),
+    # so it must parse as German too, otherwise "449.000" would be read as 449.0.
+    german = value.provenance in {Provenance.DETERMINISTIC, Provenance.RECONCILED}
 
     if spec.kind is FieldKind.STRING:
         return raw.strip()
