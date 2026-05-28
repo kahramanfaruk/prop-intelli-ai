@@ -1,10 +1,19 @@
-"""Bronze layer: immutable raw-document store.
+"""Bronze layer of the data lake: immutable raw-document store.
 
-Each ingested document is assigned a stable UUID, written verbatim under the
-Bronze directory together with a manifest (original filename, SHA-256 content
-hash, size, ingestion timestamp). The content hash supports deduplication and
-provenance. In production this maps directly onto Azure Blob Storage with an
-Event Grid trigger; the local filesystem implementation keeps the same contract.
+Each ingested document is assigned a stable UUID and written verbatim under the
+Bronze directory as ``original.<suffix>``, together with a ``manifest.json``
+recording its metadata: ``document_id`` (the UUID), ``source_document`` (the
+original filename without any path prefix), ``stored_path``, the SHA-256 content
+hash, ``size_bytes``, and the UTC ingestion timestamp.
+
+The manifest is the authoritative record of what was ingested, when, where it is
+stored, and (via the hash) its content integrity. That is what enables
+deduplication (group manifests by ``sha256`` to detect duplicate content) and
+provenance (``source_document`` and ``received_at`` show where and when a file
+came from).
+
+In production this maps directly onto Azure Blob Storage with an Event Grid
+trigger; the local filesystem implementation keeps the same contract.
 """
 
 from __future__ import annotations
@@ -74,7 +83,12 @@ class BronzeDocument(BaseModel):
 
 
 class DocumentStore:
-    """A filesystem-backed Bronze store for raw documents."""
+    """A filesystem-backed Bronze store for raw documents.
+
+    The root directory is created on construction. It is the local equivalent of
+    a Bronze container in Azure Blob Storage: each document is stored under its
+    own subdirectory.
+    """
 
     def __init__(self, bronze_dir: Path) -> None:
         """Create the store rooted at ``bronze_dir``.

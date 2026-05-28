@@ -1,7 +1,7 @@
 # PropIntelli AI: developer convenience targets.
 # All Python targets run inside the uv-managed virtual environment.
 
-.PHONY: help install format lint typecheck test check samples e2e ui clean
+.PHONY: help install format lint typecheck test check samples e2e ui ui-llm clean
 
 help:  ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -32,7 +32,13 @@ e2e: samples  ## Generate samples, batch-process them, then evaluate.
 	uv run propintelli batch sample_data/raw
 	uv run propintelli evaluate
 
-ui:  ## Launch the Streamlit human-in-the-loop demo.
+ui:  ## Launch the Streamlit human-in-the-loop demo (deterministic, offline).
+	uv run streamlit run app/streamlit_app.py
+
+ui-llm:  ## Launch the demo with the local Ollama LLM second opinion enabled (slower).
+	PROPINTELLI_LLM_PROVIDER=ollama \
+	PROPINTELLI_LLM_PROMPT_VARIANT=v2_schema \
+	PROPINTELLI_LLM_TIMEOUT_SECONDS=600 \
 	uv run streamlit run app/streamlit_app.py
 
 clean:  ## Remove caches and generated runtime data.

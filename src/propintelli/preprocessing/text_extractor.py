@@ -83,6 +83,12 @@ class PreprocessedDocument(BaseModel):
 def tesseract_available() -> bool:
     """Report whether the Tesseract OCR backend can be used.
 
+    Tesseract is a free, open-source OCR engine that extracts text from images
+    (or image-only PDF pages); it is reached here through the ``pytesseract``
+    package, which wraps the ``tesseract`` binary. The result is cached
+    (``lru_cache``) so the binary lookup and the import check run at most once
+    per process.
+
     Returns
     -------
     bool

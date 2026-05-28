@@ -25,6 +25,9 @@ Baujahr** (and more) from PDF exposés.
 - **Confidence-driven HITL**: auto-approve / review / manual routing; a Streamlit
   app to correct flagged fields, feed corrections back, and publish the Gold
   analytics layer from Silver on demand (the full Bronze → Silver → Gold flow).
+  The app shows the active extraction backend, the per-field source breakdown,
+  and the reconciliation notes, so the hybrid (deterministic + LLM) decisions are
+  visible during a demo.
 - **Two-corpus evaluation**: a synthetic corpus measures **consistency** (0.996
   macro-F1) and an independently-authored **holdout** measures **generalization**
   (0.896 macro-F1); all metrics carry **95% Wilson confidence intervals**, and
@@ -100,6 +103,20 @@ With a backend set, compare the three prompt variants on a corpus:
 uv run propintelli compare-prompts \
   --raw-dir sample_data/holdout/raw --truth-dir sample_data/holdout/ground_truth
 ```
+
+To demo the hybrid layer **live in the UI** with a local Ollama model (requires
+`ollama serve` and a pulled model, e.g. `llama3.1`):
+
+```bash
+make ui-llm   # launches Streamlit with PROPINTELLI_LLM_PROVIDER=ollama and a raised timeout
+```
+
+The app shows the active extraction backend, a per-field **source breakdown**
+(deterministic / llm / reconciled / manual), and a **reconciliation-notes** panel
+that surfaces where the two layers disagreed. Local 8B inference is slow
+(~130–500 s/document on CPU), which is why the timeout is raised and the default
+demo (`make ui`) stays deterministic and instant; in production this slot is an
+Azure OpenAI deployment with sub-second latency.
 
 ### Full stack with Docker
 

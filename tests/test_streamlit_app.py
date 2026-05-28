@@ -19,7 +19,8 @@ import pytest
 
 pytest.importorskip("streamlit")
 
-from propintelli.schemas.enums import ListingType, PriceKind, ReviewStatus
+from propintelli.config import LlmProvider, PromptVariant, Settings
+from propintelli.schemas.enums import ListingType, PriceKind, Provenance, ReviewStatus
 from propintelli.schemas.property_record import Location, PropertyRecord, QualityReport
 from propintelli.storage import SilverRepository
 
@@ -103,6 +104,42 @@ def test_publish_gold_builds_artifacts_from_silver(tmp_path: Path) -> None:
     assert artifacts.summary_csv.exists()
     # The sale listing appears in the city-level market summary.
     assert any(row["city"] == "Nürnberg" for row in artifacts.summary)
+
+
+def test_backend_caption_reports_deterministic_only_without_llm() -> None:
+    app = _load_app()
+    caption = app._backend_caption(Settings(llm_provider=LlmProvider.NONE))
+    assert "deterministic baseline only" in caption
+
+
+def test_backend_caption_names_provider_model_and_variant() -> None:
+    app = _load_app()
+    settings = Settings(
+        llm_provider=LlmProvider.OLLAMA,
+        ollama_model="llama3.1",
+        llm_prompt_variant=PromptVariant.V2_SCHEMA,
+    )
+    caption = app._backend_caption(settings)
+    assert "ollama" in caption
+    assert "llama3.1" in caption
+    assert "v2_schema" in caption
+
+
+def test_provenance_breakdown_counts_sources_in_canonical_order() -> None:
+    app = _load_app()
+    record = _record()
+    record.quality.field_provenance = {
+        "price_eur": Provenance.DETERMINISTIC,
+        "postal_code": Provenance.DETERMINISTIC,
+        "district": Provenance.LLM,
+        "city": Provenance.RECONCILED,
+    }
+    assert app._provenance_breakdown(record) == "deterministic: 2 · llm: 1 · reconciled: 1"
+
+
+def test_provenance_breakdown_is_none_when_no_fields_were_extracted() -> None:
+    app = _load_app()
+    assert app._provenance_breakdown(_record()) is None
 
 
 def test_app_renders_headlessly_without_error() -> None:

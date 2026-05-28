@@ -8,20 +8,30 @@ publishes the Gold analytics layer (DuckDB + Parquet/CSV and a city-level market
 summary) from the Silver store on demand, so the full Bronze -> Silver -> Gold
 medallion is visible in the demo.
 
-Run with::
+The active extraction backend is shown so it is clear whether the optional LLM
+layer is engaged; the per-field source breakdown and the reconciliation notes
+make the hybrid (deterministic + LLM) decisions visible, including where the two
+layers disagreed.
+
+Run deterministic (offline)::
 
     uv run streamlit run app/streamlit_app.py
+
+Run with the local Ollama LLM second opinion enabled (slower)::
+
+    make ui-llm
 """
 
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import streamlit as st
 
-from propintelli.config import get_settings
+from propintelli.config import LlmProvider, Settings, get_settings
 from propintelli.ingestion.document_store import DocumentStore
 from propintelli.logging_setup import configure_logging
 from propintelli.pipeline import Pipeline
@@ -65,6 +75,58 @@ def _flatten(record: PropertyRecord) -> dict[str, Any]:
     return flat
 
 
+def _backend_caption(settings: Settings) -> str:
+    """Describe the active extraction backend for display.
+
+    Parameters
+    ----------
+    settings : Settings
+        The resolved runtime settings.
+
+    Returns
+    -------
+    str
+        A one-line description: the deterministic baseline alone when no LLM
+        backend is configured, otherwise the deterministic baseline plus the
+        configured LLM provider, model, and prompt variant.
+    """
+    if settings.llm_provider is LlmProvider.NONE:
+        return "Extraction backend: deterministic baseline only (offline, no LLM)."
+    model = {
+        LlmProvider.OLLAMA: settings.ollama_model,
+        LlmProvider.OPENAI: settings.openai_model,
+        LlmProvider.AZURE_OPENAI: settings.azure_openai_deployment or "deployment",
+    }[settings.llm_provider]
+    return (
+        "Extraction backend: deterministic baseline + LLM second opinion "
+        f"({settings.llm_provider.value} · {model} · prompt {settings.llm_prompt_variant.value})."
+    )
+
+
+def _provenance_breakdown(record: PropertyRecord) -> str | None:
+    """Summarise how many extracted fields came from each source layer.
+
+    Parameters
+    ----------
+    record : PropertyRecord
+        The processed record whose field provenance is summarised.
+
+    Returns
+    -------
+    str or None
+        A compact ``"deterministic: 18 · llm: 2 · reconciled: 4"`` summary in
+        canonical provenance order, or ``None`` when no field provenance is
+        recorded (e.g. an empty extraction).
+    """
+    counts = Counter(prov.value for prov in record.quality.field_provenance.values())
+    if not counts:
+        return None
+    parts = [
+        f"{origin.value}: {counts[origin.value]}" for origin in Provenance if counts[origin.value]
+    ]
+    return " · ".join(parts)
+
+
 def _render_header(record: PropertyRecord) -> None:
     """Render the status banner and headline quality metrics."""
     quality = record.quality
@@ -75,6 +137,30 @@ def _render_header(record: PropertyRecord) -> None:
     columns[1].metric("Completeness", f"{quality.completeness:.0%}")
     columns[2].metric("Validation pass rate", f"{quality.validation_pass_rate:.0%}")
     columns[3].metric("Findings", str(len(quality.findings)))
+    breakdown = _provenance_breakdown(record)
+    if breakdown is not None:
+        st.caption(f"Field sources: {breakdown}")
+
+
+def _render_processing_notes(record: PropertyRecord) -> None:
+    """Render reconciliation and processing notes, if any were recorded.
+
+    These warnings surface where the two extraction layers disagreed (the
+    deterministic and LLM values differed and one was chosen, with its
+    confidence penalised) and any recoverable downgrade (e.g. the LLM layer was
+    unavailable), so a reviewer can see how the hybrid result was reached.
+
+    Parameters
+    ----------
+    record : PropertyRecord
+        The processed record whose quality warnings are displayed.
+    """
+    warnings = record.quality.warnings
+    if not warnings:
+        return
+    with st.expander(f"Reconciliation & processing notes ({len(warnings)})"):
+        for note in warnings:
+            st.write(f"- {note}")
 
 
 def _render_review_form(record: PropertyRecord) -> dict[str, str]:
@@ -204,14 +290,23 @@ def main() -> None:
         "data, scores its confidence, and routes uncertain results to you for review."
     )
 
+    settings = get_settings()
+    st.caption(_backend_caption(settings))
+
     pipeline, repository = _services()
-    _render_gold_panel(repository, get_settings().gold_dir)
+    _render_gold_panel(repository, settings.gold_dir)
     upload = st.file_uploader("Exposé PDF", type=["pdf"])
     if upload is None:
         st.info("Upload a PDF to begin. Sample exposés live in `sample_data/raw/`.")
         return
 
-    result = pipeline.process_bytes(upload.getvalue(), upload.name)
+    spinner_message = (
+        "Extracting structured data…"
+        if settings.llm_provider is LlmProvider.NONE
+        else "Extracting structured data (querying the local LLM may take a minute)…"
+    )
+    with st.spinner(spinner_message):
+        result = pipeline.process_bytes(upload.getvalue(), upload.name)
     if result.error is not None:
         st.error(f"**{result.error.error_code}**: {result.error.user_message}")
         return
@@ -224,6 +319,8 @@ def main() -> None:
         with st.expander(f"Validation findings ({len(record.quality.findings)})"):
             for finding in record.quality.findings:
                 st.write(f"- **{finding.severity.value}** `{finding.rule_id}`: {finding.message}")
+
+    _render_processing_notes(record)
 
     edits = _render_review_form(record)
     if edits:
