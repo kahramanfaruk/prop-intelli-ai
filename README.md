@@ -28,7 +28,8 @@ Baujahr** (and more) from PDF exposés.
   The app shows the active extraction backend, the per-field source breakdown,
   and the reconciliation notes, so the hybrid (deterministic + LLM) decisions are
   visible during a demo, plus corpus-analytics charts (review-status distribution
-  and, for sale listings, price vs. living area) over the stored Silver records.
+  and, for sale listings, price vs. living area) over the stored Silver records,
+  and the Gold market summary as an average-€/m²-by-city bar chart.
 - **Two-corpus evaluation**: a synthetic corpus measures **consistency** (0.996
   macro-F1) and an independently-authored **holdout** measures **generalization**
   (0.896 macro-F1); all metrics carry **95% Wilson confidence intervals**, and

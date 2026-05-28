@@ -6,7 +6,8 @@ and persist the approved record to the Silver store, then download it as JSON,
 demonstrating the confidence-driven HITL loop end to end. A sidebar panel
 publishes the Gold analytics layer (DuckDB + Parquet/CSV and a city-level market
 summary) from the Silver store on demand, so the full Bronze -> Silver -> Gold
-medallion is visible in the demo.
+medallion is visible in the demo; the market summary is shown both as a table
+and as an average-price-per-m2-by-city bar chart.
 
 The active extraction backend is shown so it is clear whether the optional LLM
 layer is engaged; the per-field source breakdown and the reconciliation notes
@@ -326,12 +327,42 @@ def _publish_gold(repository: SilverRepository, gold_dir: Path) -> GoldArtifacts
     return build_gold(records, gold_dir)
 
 
+def _market_summary_chart(summary: list[dict[str, Any]]) -> pd.DataFrame:
+    """Shape the Gold market summary into a frame for a price-per-m2 bar chart.
+
+    The aggregation itself is performed once in the Gold layer (DuckDB); this only
+    reshapes the resulting rows for display. Each city label embeds the number of
+    listings behind it, so the (often small) per-city support is visible and a
+    single-listing average is not read as a robust market figure.
+
+    Parameters
+    ----------
+    summary : list of dict
+        The Gold market-summary rows (city-level aggregates for sale listings),
+        as returned by :func:`propintelli.storage.gold.build_gold`.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Indexed by ``"<city> (n=<listings>)"`` with a single
+        ``"avg_price_per_sqm"`` column, ready for :func:`streamlit.bar_chart`.
+        Cities without a name or without an average price are omitted.
+    """
+    prices = {
+        f"{row['city']} (n={row['listings']})": row["avg_price_per_sqm"]
+        for row in summary
+        if row.get("city") and row.get("avg_price_per_sqm") is not None
+    }
+    return pd.DataFrame({"avg_price_per_sqm": prices})
+
+
 def _render_gold_panel(repository: SilverRepository, gold_dir: Path) -> None:
     """Render the sidebar Gold panel: publish analytics from Silver on demand.
 
     Gold is an aggregate, recomputable view rebuilt from the whole Silver store,
     so it is published explicitly rather than on every save. The panel surfaces
-    that step in the demo and shows the resulting market summary and exports.
+    that step in the demo and shows the resulting market summary, as a table and
+    an average-price-per-m2 bar chart, plus the file exports.
     """
     with st.sidebar:
         st.header("Gold analytics layer")
@@ -347,6 +378,10 @@ def _render_gold_panel(repository: SilverRepository, gold_dir: Path) -> None:
         if artifacts.summary:
             st.caption("Market summary (sale listings)")
             st.dataframe(artifacts.summary, use_container_width=True)
+            price_chart = _market_summary_chart(artifacts.summary)
+            if not price_chart.empty:
+                st.caption("Average sale price per m² by city")
+                st.bar_chart(price_chart)
         else:
             st.caption("No sale listings to summarise yet.")
         st.download_button(

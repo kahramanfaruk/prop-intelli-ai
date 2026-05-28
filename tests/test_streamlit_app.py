@@ -176,6 +176,20 @@ def test_sale_price_area_points_keeps_only_sale_listings_with_price_and_area() -
     assert points == [{"living_area_sqm": 92.0, "price_eur": 449000.0}]
 
 
+def test_market_summary_chart_labels_bars_with_listing_count() -> None:
+    app = _load_app()
+    summary = [
+        {"city": "Nürnberg", "listings": 3, "avg_price_per_sqm": 4880.43},
+        {"city": "Berlin", "listings": 1, "avg_price_per_sqm": 9926.47},
+        {"city": "Ghost", "listings": 2, "avg_price_per_sqm": None},  # no average -> skipped
+    ]
+
+    frame = app._market_summary_chart(summary)
+
+    assert list(frame.index) == ["Nürnberg (n=3)", "Berlin (n=1)"]
+    assert frame.loc["Nürnberg (n=3)", "avg_price_per_sqm"] == 4880.43
+
+
 def test_app_renders_headlessly_without_error() -> None:
     # Smoke-test the whole script via Streamlit's headless AppTest: it must run
     # (no upload -> early return) and expose the Gold panel in the sidebar.
