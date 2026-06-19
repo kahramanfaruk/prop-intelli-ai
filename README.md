@@ -9,8 +9,7 @@ real-estate exposés (Immobilien-Exposés) into validated, structured property d
 > handling, and enterprise integration (C# microservice, Docker, CI/CD, Azure
 > mapping).
 
-Built as a take-home case study for a Senior Data & AI Consultant role
-(Microsoft Data & AI). Use case: extract **Fläche, Preis, Lage, Ausstattung,
+Use case: extract **Fläche, Preis, Lage, Ausstattung,
 Baujahr** (and more) from PDF exposés.
 
 ## Highlights
